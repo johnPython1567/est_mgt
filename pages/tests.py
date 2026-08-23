@@ -2,9 +2,10 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import Favorite, Inquiry, Property
 
+from .models import Favorite, Inquiry, Property, Realtor
 
 def make_property(**overrides):
     defaults = {
@@ -394,3 +395,233 @@ class ProfileInquiriesTests(TestCase):
         response = self.client.get(reverse("profile"))
 
         self.assertEqual(list(response.context["inquiries"]), [own_inquiry])
+
+def make_verified_realtor(username="realtor1"):
+    user_model = get_user_model()
+    user = user_model.objects.create_user(
+        username=username, password="SafePassword123!"
+    )
+    realtor = Realtor.objects.create(
+        user=user,
+        bio="Experienced local agent.",
+        phone="08000000000",
+        agency="Prime Homes",
+        is_verified=True,
+    )
+    return user, realtor
+
+
+class RealtorModelTests(TestCase):
+    def test_string_representation_reflects_verification_status(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+        realtor = Realtor.objects.create(user=user)
+        self.assertEqual(str(realtor), "ada (Pending)")
+
+        realtor.is_verified = True
+        realtor.save()
+        self.assertEqual(str(realtor), "ada (Verified)")
+
+    def test_one_user_can_only_have_one_realtor_profile(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+        Realtor.objects.create(user=user)
+        with self.assertRaises(IntegrityError):
+            Realtor.objects.create(user=user)
+
+
+class RealtorApplyViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("realtor-apply")
+        self.user_model = get_user_model()
+        self.user = self.user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+
+    def test_requires_login(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(
+            response, f"{reverse('login')}?next={self.url}"
+        )
+
+    def test_submitting_creates_a_pending_application(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            self.url,
+            {"bio": "I sell houses.", "phone": "0800", "agency": "Acme"},
+        )
+
+        self.assertRedirects(response, self.url)
+        realtor = Realtor.objects.get(user=self.user)
+        self.assertFalse(realtor.is_verified)
+
+    def test_cannot_apply_twice(self):
+        Realtor.objects.create(user=self.user)
+        self.client.force_login(self.user)
+
+        self.client.post(
+            self.url,
+            {"bio": "Second try", "phone": "0800", "agency": "Acme"},
+        )
+
+        self.assertEqual(Realtor.objects.filter(user=self.user).count(), 1)
+
+
+class VerifiedRealtorAccessTests(TestCase):
+    def setUp(self):
+        self.user_model = get_user_model()
+        self.plain_user = self.user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+
+    def test_unauthenticated_user_is_redirected_to_login(self):
+        response = self.client.get(reverse("realtor-dashboard"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
+
+    def test_user_without_realtor_profile_is_redirected_to_apply(self):
+        self.client.force_login(self.plain_user)
+        response = self.client.get(reverse("realtor-dashboard"))
+        self.assertRedirects(response, reverse("realtor-apply"))
+
+    def test_unverified_realtor_is_redirected_to_apply(self):
+        Realtor.objects.create(user=self.plain_user, is_verified=False)
+        self.client.force_login(self.plain_user)
+
+        response = self.client.get(reverse("realtor-dashboard"))
+        self.assertRedirects(response, reverse("realtor-apply"))
+
+    def test_verified_realtor_can_access_dashboard(self):
+        user, realtor = make_verified_realtor()
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("realtor-dashboard"))
+        self.assertEqual(response.status_code, 200)
+
+
+class PropertyCreateViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("property-create")
+        self.valid_payload = {
+            "title": "New Build Duplex",
+            "description": "Spacious duplex.",
+            "property_type": "house",
+            "listing_type": "sale",
+            "price": "25000000",
+            "bedrooms": 4,
+            "bathrooms": 3,
+            "area": 200,
+            "address": "5 Palm Avenue",
+            "city": "Lagos",
+            "state": "Lagos",
+        }
+
+    def test_verified_realtor_can_create_a_listing(self):
+        user, realtor = make_verified_realtor()
+        self.client.force_login(user)
+
+        response = self.client.post(self.url, self.valid_payload)
+
+        self.assertRedirects(response, reverse("realtor-dashboard"))
+        created = Property.objects.get(title="New Build Duplex")
+        self.assertEqual(created.realtor, realtor)
+        self.assertTrue(created.slug)
+
+    def test_duplicate_titles_get_unique_slugs(self):
+        user, realtor = make_verified_realtor()
+        self.client.force_login(user)
+
+        self.client.post(self.url, self.valid_payload)
+        self.client.post(self.url, self.valid_payload)
+
+        slugs = set(
+            Property.objects.filter(
+                title="New Build Duplex"
+            ).values_list("slug", flat=True)
+        )
+        self.assertEqual(len(slugs), 2)
+
+    def test_unverified_user_cannot_create_a_listing(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(self.url, self.valid_payload)
+
+        self.assertRedirects(response, reverse("realtor-apply"))
+        self.assertEqual(Property.objects.count(), 0)
+
+
+class PropertyUpdateViewTests(TestCase):
+    def test_realtor_can_edit_their_own_listing(self):
+        user, realtor = make_verified_realtor()
+        property_obj = make_property(realtor=realtor)
+        self.client.force_login(user)
+
+        payload = {
+            "title": property_obj.title,
+            "description": "Updated description.",
+            "property_type": property_obj.property_type,
+            "listing_type": property_obj.listing_type,
+            "price": property_obj.price,
+            "bedrooms": property_obj.bedrooms,
+            "bathrooms": property_obj.bathrooms,
+            "area": property_obj.area,
+            "address": property_obj.address,
+            "city": property_obj.city,
+            "state": property_obj.state,
+        }
+
+        response = self.client.post(
+            reverse("property-edit", args=[property_obj.slug]), payload
+        )
+
+        self.assertRedirects(response, reverse("realtor-dashboard"))
+        property_obj.refresh_from_db()
+        self.assertEqual(property_obj.description, "Updated description.")
+
+    def test_realtor_cannot_edit_another_realtors_listing(self):
+        _, owner_realtor = make_verified_realtor(username="owner")
+        other_user, _ = make_verified_realtor(username="intruder")
+        property_obj = make_property(realtor=owner_realtor)
+
+        self.client.force_login(other_user)
+
+        response = self.client.get(
+            reverse("property-edit", args=[property_obj.slug])
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+
+class RealtorAdminActionTests(TestCase):
+    def test_approve_realtors_action_sets_verified_and_timestamp(self):
+        from django.utils import timezone
+
+        from .admin import approve_realtors
+
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+        realtor = Realtor.objects.create(user=user)
+
+        class DummyModelAdmin:
+            def message_user(self, request, message):
+                pass
+
+        approve_realtors(
+            DummyModelAdmin(), None, Realtor.objects.filter(pk=realtor.pk)
+        )
+
+        realtor.refresh_from_db()
+        self.assertTrue(realtor.is_verified)
+        self.assertIsNotNone(realtor.verified_at)
+        self.assertLessEqual(realtor.verified_at, timezone.now())

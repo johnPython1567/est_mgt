@@ -105,7 +105,6 @@
 
 
                 <!-- Listing Badge -->
-
                 <div
                     class="absolute
                            top-6
@@ -126,8 +125,49 @@
                         {{ property.get_listing_type_display }}
                     </span>
 
-                </div>
+                </div> 
 
+                <!-- Listing Badge / New Badge -->
+                <div
+                    class="absolute
+                           top-6
+                           left-6
+                           flex
+                           items-center
+                           gap-2"
+                >
+
+                    <span
+                        class="inline-flex
+                               px-4
+                               py-2
+                               rounded-full
+                               bg-[#12283F]
+                               text-white
+                               text-sm
+                               font-bold
+                               shadow-lg"
+                    >
+                        {{ property.get_listing_type_display }}
+                    </span>
+
+                    {% if property.is_new %}
+                        <span
+                            class="inline-flex
+                                   px-4
+                                   py-2
+                                   rounded-full
+                                   bg-[#C49A5A]
+                                   text-white
+                                   text-sm
+                                   font-bold
+                                   shadow-lg"
+                        >
+                            New
+                        </span>
+                    {% endif %}
+
+                </div>
 
                 <!-- Favorite Button -->
 

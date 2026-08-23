@@ -374,13 +374,15 @@
 
                             {% endif %}
 
-
-                            <!-- Listing Type -->
+                            <!-- Listing Type / New Badge -->
 
                             <div
                                 class="absolute
                                        top-5
-                                       left-5"
+                                       left-5
+                                       flex
+                                       items-center
+                                       gap-2"
                             >
 
                                 <span
@@ -397,6 +399,23 @@
                                 >
                                     {{ property.get_listing_type_display }}
                                 </span>
+
+                                {% if property.is_new %}
+                                    <span
+                                        class="inline-flex
+                                               items-center
+                                               px-3
+                                               py-1.5
+                                               rounded-full
+                                               bg-[#C49A5A]
+                                               text-white
+                                               text-xs
+                                               font-bold
+                                               shadow-md"
+                                    >
+                                        New
+                                    </span>
+                                {% endif %}
 
                             </div>
 

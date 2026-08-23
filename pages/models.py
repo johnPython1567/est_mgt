@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 # Create your models here.
 
@@ -79,7 +80,14 @@ class Property(models.Model):
 
         def get_absolute_url(self):
             return reverse("property-detail", args=[self.slug])
-
+        
+        @property
+        def is_new(self):
+            """True if this listing was created within the last 48
+            hours, used to show a "New" badge on listing cards."""
+            return self.created_at >= timezone.now() - timezone.timedelta(
+                hours=48
+            )
 
 class Favorite(models.Model):
     user = models.ForeignKey(

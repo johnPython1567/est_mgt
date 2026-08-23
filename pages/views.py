@@ -1,3 +1,5 @@
+import random
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
@@ -27,26 +29,47 @@ from .models import Property, Favorite, Inquiry, Realtor
 class HomeView(TemplateView):
     template_name = "pages/home.html"
 
+    HERO_COUNT = 5
+    FEATURED_COUNT = 6
+
+    def get_daily_featured_properties(self):
+        """Pick a rotating subset of featured properties, seeded by
+        today's date. Everyone sees the same set on a given day, and
+        it automatically changes at midnight without any scheduled
+        task — no admin action needed to "refresh" the homepage."""
+        featured = list(
+            Property.objects.filter(featured=True, is_published=True)
+        )
+
+        rng = random.Random(date.today().isoformat())
+        rng.shuffle(featured)
+
+        return featured[: self.FEATURED_COUNT]
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # Explicit ordering (matches the model's default, but stated
+        # here so "latest properties first" can't silently break if
+        # Property.Meta.ordering ever changes).
         context["hero_properties"] = Property.objects.filter(
             is_published=True
-        )[:5]
+        ).order_by("-created_at")[: self.HERO_COUNT]
 
-        context["featured_properties"] = Property.objects.filter(
-            featured=True,
-            is_published=True
-        )[:6]
+        context["featured_properties"] = self.get_daily_featured_properties()
+
         context["property_types"] = Property.PROPERTY_TYPES
 
         context["favorite_property_ids"] = set()
 
         if self.request.user.is_authenticated:
+            favorited_ids = list(context["hero_properties"]) + list(
+                context["featured_properties"]
+            )
             context["favorite_property_ids"] = set(
                 Favorite.objects.filter(
                     user=self.request.user,
-                    property__in=context["featured_properties"],
+                    property__in=favorited_ids,
                 ).values_list("property_id", flat=True)
             )
         return context

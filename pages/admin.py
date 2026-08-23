@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils import timezone
 from .models import Inquiry, Property, Realtor
 
 @admin.register(Property)
