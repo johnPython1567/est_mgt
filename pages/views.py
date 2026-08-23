@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils.text import slugify
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 
 from .forms import (
     InquiryForm,
@@ -478,6 +478,10 @@ class RealtorDashboardView(VerifiedRealtorRequiredMixin, TemplateView):
             realtor=self.request.user.realtor_profile
         )
 
+        context["new_inquiry_count"] = Inquiry.objects.filter(
+            property__realtor=self.request.user.realtor_profile,
+            status="new",
+        ).count()
         return context
 
 
@@ -530,3 +534,58 @@ class PropertyUpdateView(VerifiedRealtorRequiredMixin, UpdateView):
 
         messages.success(self.request, "Listing updated.")
         return redirect("realtor-dashboard")
+
+
+class RealtorInquiryListView(VerifiedRealtorRequiredMixin, ListView):
+    model = Inquiry
+    template_name = "realtors/inquiries.html"
+    context_object_name = "inquiries"
+    login_url = reverse_lazy("login")
+
+    STATUS_FILTER_CHOICES = Inquiry.STATUS_CHOICES
+
+    def get_queryset(self):
+        queryset = Inquiry.objects.filter(
+            property__realtor=self.request.user.realtor_profile
+        ).select_related("property")
+
+        status = self.request.GET.get("status", "")
+        valid_statuses = {value for value, _ in Inquiry.STATUS_CHOICES}
+
+        if status in valid_statuses:
+            queryset = queryset.filter(status=status)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["status_choices"] = self.STATUS_FILTER_CHOICES
+        context["selected_status"] = self.request.GET.get("status", "")
+        return context
+
+
+@require_POST
+@login_required
+def update_inquiry_status(request, pk):
+    inquiry = get_object_or_404(
+        Inquiry.objects.select_related("property__realtor"),
+        pk=pk,
+    )
+
+    # Ownership check: a realtor may only update the status of
+    # inquiries on their own listings, not anyone else's.
+    realtor_profile = getattr(request.user, "realtor_profile", None)
+    if not realtor_profile or inquiry.property.realtor_id != realtor_profile.id:
+        raise Http404
+
+    new_status = request.POST.get("status")
+    valid_statuses = {value for value, _ in Inquiry.STATUS_CHOICES}
+
+    if new_status in valid_statuses:
+        inquiry.status = new_status
+        inquiry.save(update_fields=["status", "updated_at"])
+        messages.success(request, "Inquiry status updated.")
+    else:
+        messages.error(request, "That isn't a valid status.")
+
+    return redirect("realtor-inquiries")
