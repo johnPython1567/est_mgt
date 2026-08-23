@@ -74,6 +74,21 @@ class Property(models.Model):
 
         class Meta:
             ordering = ["-created_at"]
+            indexes = [
+                # Covers the single most common query shape in the app:
+                # "published listings, newest first" — used by the
+                # homepage, property list, and favorite/inquiry lookups.
+                models.Index(
+                    fields=["is_published", "-created_at"],
+                    name="property_pub_created_idx",
+                ),
+                models.Index(
+                    fields=["featured", "is_published"],
+                    name="property_feat_pub_idx",
+                ),
+                models.Index(fields=["property_type"], name="property_type_idx"),
+                models.Index(fields=["listing_type"], name="property_listing_type_idx"),
+            ]
 
         def __str__(self):
             return self.title
