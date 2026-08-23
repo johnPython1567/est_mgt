@@ -127,12 +127,63 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 
+# The CSRF token is read from the rendered form field (the hidden
+# csrfmiddlewaretoken input), never from JS reading the cookie, so
+# this is safe to enable without breaking the AJAX favorite toggle.
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = True
+
+# Comma-separated list of scheme+host origins Django will accept
+# unsafe (POST/PUT/etc.) requests from, e.g.
+# DJANGO_CSRF_TRUSTED_ORIGINS=https://est-mgt.example.com
+# Required by Django whenever the site is served over HTTPS behind
+# a domain — without it, every form submission in production gets
+# rejected with "CSRF verification failed."
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 # HTTPS-only protections. They automatically activate when
 # DJANGO_DEBUG=False on a real HTTPS deployment.
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+    # HSTS: tells browsers to only ever contact this site over HTTPS
+    # for the next year, including subdomains. Start with a short
+    # value while confirming HTTPS works end-to-end, then raise it
+    # to 31536000 (1 year) once confident — HSTS is hard to safely
+    # undo once a long value has been sent and cached by browsers.
+    SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", "3600"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# Make sure errors are actually visible somewhere in production
+# instead of silently vanishing once DEBUG=False turns off Django's
+# on-screen error pages.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
