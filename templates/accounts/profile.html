@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | Your profile{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<section class="min-h-[60vh] bg-[#F8FAFC] px-6 py-16">
+    <div class="mx-auto max-w-2xl rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-sm">
+        <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">Your account</p>
+        <h1 class="mt-3 text-3xl font-bold text-[#12283F]">Welcome, {{ request.user.username }}</h1>
+
+        <dl class="mt-8 divide-y divide-[#E2E8F0]">
+            <div class="flex items-center justify-between gap-6 py-4">
+                <dt class="text-sm font-medium text-[#64748B]">Username</dt>
+                <dd class="font-semibold text-[#172033]">{{ request.user.username }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-6 py-4">
+                <dt class="text-sm font-medium text-[#64748B]">Email</dt>
+                <dd class="font-semibold text-[#172033]">{{ request.user.email }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-6 py-4">
+                <dt class="text-sm font-medium text-[#64748B]">Member since</dt>
+                <dd class="font-semibold text-[#172033]">{{ request.user.date_joined|date:"F j, Y" }}</dd>
+            </div>
+        </dl>
+
+               <div class="mt-8 rounded-xl bg-[#F8FAFC] p-5">
+            <h2 class="font-bold text-[#12283F]">Saved properties</h2>
+
+            {% if favorites %}
+                <ul class="mt-3 divide-y divide-[#E2E8F0]">
+                    {% for favorite in favorites %}
+                        <li class="flex items-center justify-between gap-4 py-3">
+                            <a href="{{ favorite.property.get_absolute_url }}" class="font-semibold text-[#12283F] hover:text-[#C49A5A]">
+                                {{ favorite.property.title }}
+                            </a>
+                            <span class="text-sm text-[#64748B]">₦{{ favorite.property.price }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="mt-2 text-sm text-[#64748B]">You haven't saved any properties yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="mt-6 rounded-xl bg-[#F8FAFC] p-5">
+            <h2 class="font-bold text-[#12283F]">Your inquiries</h2>
+
+            {% if inquiries %}
+                <ul class="mt-3 divide-y divide-[#E2E8F0]">
+                    {% for inquiry in inquiries %}
+                        <li class="py-3">
+                            <div class="flex items-center justify-between gap-4">
+                                <a href="{{ inquiry.property.get_absolute_url }}" class="font-semibold text-[#12283F] hover:text-[#C49A5A]">
+                                    {{ inquiry.property.title }}
+                                </a>
+                                <span class="text-xs font-semibold uppercase tracking-wide text-[#C49A5A]">
+                                    {{ inquiry.get_status_display }}
+                                </span>
+                            </div>
+                            <p class="mt-1 text-sm text-[#64748B]">{{ inquiry.message|truncatewords:20 }}</p>
+                            <p class="mt-1 text-xs text-[#94A3B8]">{{ inquiry.created_at|date:"F j, Y" }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="mt-2 text-sm text-[#64748B]">You haven't sent any inquiries yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+

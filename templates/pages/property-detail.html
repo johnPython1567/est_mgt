@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+{% load vite %}
+
+
+{% block page_title %}
+    EST-MGT | {{ property.title }}
+{% endblock %}
+
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+
+{% block content %}
+
+<main class="bg-[#F8FAFC] min-h-screen">
+
+
+    <!-- =====================================================
+         BACK TO PROPERTIES
+    ====================================================== -->
+
+    <div class="max-w-7xl mx-auto px-6 pt-8">
+
+        <a
+            href="{% url 'property-list' %}"
+            class="inline-flex
+                   items-center
+                   text-sm
+                   font-semibold
+                   text-[#64748B]
+                   hover:text-[#12283F]
+                   transition"
+        >
+            ← Back to Properties
+        </a>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         PROPERTY DETAIL
+    ====================================================== -->
+
+    <section class="max-w-7xl mx-auto px-6 py-8">
+
+
+        <!-- =================================================
+             PROPERTY CARD
+        ================================================== -->
+
+        <div
+            class="bg-white
+                   rounded-2xl
+                   overflow-hidden
+                   border
+                   border-[#E2E8F0]"
+        >
+
+
+            <!-- =============================================
+                 PROPERTY IMAGE
+            ============================================== -->
+
+            <div
+                class="relative
+                       w-full
+                       h-[420px]
+                       md:h-[550px]
+                       overflow-hidden"
+            >
+
+                {% if property.image %}
+
+                    <img
+                        src="{{ property.image.url }}"
+                        alt="{{ property.title }}"
+                        fetchpriority="high"
+                        decoding="async"
+                        class="w-full
+                               h-full
+                               object-cover"
+                    >
+
+                {% else %}
+
+                    <div
+                        class="w-full
+                               h-full
+                               bg-[#F1F5F9]
+                               flex
+                               items-center
+                               justify-center"
+                    >
+
+                        <p class="text-[#94A3B8]">
+                            No image available
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+
+                <!-- Listing Badge -->
+
+                <div
+                    class="absolute
+                           top-6
+                           left-6"
+                >
+
+                    <span
+                        class="inline-flex
+                               px-4
+                               py-2
+                               rounded-full
+                               bg-[#12283F]
+                               text-white
+                               text-sm
+                               font-bold
+                               shadow-lg"
+                    >
+                        {{ property.get_listing_type_display }}
+                    </span>
+
+                </div>
+
+
+                <!-- Favorite Button -->
+
+                <form
+                    data-favorite-form
+                    data-property-slug="{{ property.slug }}"
+                    method="post"
+                    action="{% url 'toggle-favorite' property.slug %}"
+                    class="absolute top-6 right-6"
+                >
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+
+                    <button
+                        type="submit"
+                        data-favorite-button
+                        data-favorite-kind="icon"
+                        data-add-label="Add {{ property.title }} to favorites"
+                        data-remove-label="Remove {{ property.title }} from favorites"
+                        class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-xl transition shadow-lg
+                            {% if is_favorited %}
+                                text-[#DC2626]
+                            {% else %}
+                                text-[#94A3B8] hover:text-[#DC2626]
+                            {% endif %}"
+                        aria-label="{% if is_favorited %}Remove {{ property.title }} from favorites{% else %}Add {{ property.title }} to favorites{% endif %}"
+                    >
+                        {% if is_favorited %}♥{% else %}♡{% endif %}
+                    </button>
+                </form>
+
+            </div>
+
+            <!-- =================================================
+                 PROPERTY INFORMATION
+            ================================================== -->
+
+            <div class="p-6 md:p-10">
+
+
+                <!-- Property Type -->
+
+                <p
+                    class="text-sm
+                           font-semibold
+                           uppercase
+                           tracking-wider
+                           text-[#C49A5A]"
+                >
+                    {{ property.get_property_type_display }}
+                </p>
+
+
+                <!-- Title -->
+
+                <h1
+                    class="text-3xl
+                           md:text-4xl
+                           lg:text-5xl
+                           font-bold
+                           leading-tight
+                           text-[#12283F]
+                           mt-3
+                           max-w-4xl"
+                >
+                    {{ property.title }}
+                </h1>
+
+
+                <!-- Location -->
+
+                <p
+                    class="text-base
+                           md:text-lg
+                           text-[#64748B]
+                           mt-4"
+                >
+                    📍 {{ property.city }}, {{ property.state }}
+                </p>
+
+
+                <!-- Price -->
+
+                <p
+                    class="text-3xl
+                           md:text-4xl
+                           font-bold
+                           text-[#12283F]
+                           mt-6"
+                >
+                    ₦{{ property.price }}
+                </p>
+
+
+
+                <!-- =================================================
+                     PROPERTY SPECIFICATIONS
+                ================================================== -->
+
+                <div
+                    class="grid
+                           grid-cols-2
+                           md:grid-cols-4
+                           gap-4
+                           mt-10
+                           pt-10
+                           border-t
+                           border-[#E2E8F0]"
+                >
+
+
+                    <!-- Bedrooms -->
+
+                    <div
+                        class="bg-[#F8FAFC]
+                               rounded-xl
+                               p-5"
+                    >
+
+                        <p
+                            class="text-2xl
+                                   font-bold
+                                   text-[#12283F]"
+                        >
+                            {{ property.bedrooms }}
+                        </p>
+
+                        <p
+                            class="text-sm
+                                   text-[#64748B]
+                                   mt-1"
+                        >
+                            Bedrooms
+                        </p>
+
+                    </div>
+
+
+
+                    <!-- Bathrooms -->
+
+                    <div
+                        class="bg-[#F8FAFC]
+                               rounded-xl
+                               p-5"
+                    >
+
+                        <p
+                            class="text-2xl
+                                   font-bold
+                                   text-[#12283F]"
+                        >
+                            {{ property.bathrooms }}
+                        </p>
+
+                        <p
+                            class="text-sm
+                                   text-[#64748B]
+                                   mt-1"
+                        >
+                            Bathrooms
+                        </p>
+
+                    </div>
+
+
+
+                    <!-- Area -->
+
+                    <div
+                        class="bg-[#F8FAFC]
+                               rounded-xl
+                               p-5"
+                    >
+
+                        <p
+                            class="text-2xl
+                                   font-bold
+                                   text-[#12283F]"
+                        >
+                            {{ property.area }}
+                        </p>
+
+                        <p
+                            class="text-sm
+                                   text-[#64748B]
+                                   mt-1"
+                        >
+                            Square Metres
+                        </p>
+
+                    </div>
+
+
+
+                    <!-- Property Type -->
+
+                    <div
+                        class="bg-[#F8FAFC]
+                               rounded-xl
+                               p-5"
+                    >
+
+                        <p
+                            class="text-lg
+                                   font-bold
+                                   text-[#12283F]"
+                        >
+                            {{ property.get_property_type_display }}
+                        </p>
+
+                        <p
+                            class="text-sm
+                                   text-[#64748B]
+                                   mt-1"
+                        >
+                            Property Type
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     DESCRIPTION
+                ================================================== -->
+
+                <div
+                    class="mt-12
+                           pt-10
+                           border-t
+                           border-[#E2E8F0]"
+                >
+
+                    <h2
+                        class="text-2xl
+                               md:text-3xl
+                               font-bold
+                               text-[#12283F]"
+                    >
+                        About this property
+                    </h2>
+
+
+                    <div
+                        class="mt-5
+                               text-[#64748B]
+                               leading-relaxed
+                               max-w-4xl"
+                    >
+
+                        {{ property.description|linebreaks }}
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     ACTIONS
+                ================================================== -->
+
+                <div
+                    class="flex
+                           flex-col
+                           sm:flex-row
+                           gap-4
+                           mt-10"
+                >
+
+                    <button
+                        type="button"
+                        data-inquiry-open
+                        aria-haspopup="dialog"
+                        aria-controls="inquiry-modal"
+                        class="inline-flex
+                            items-center
+                            justify-center
+                            bg-[#12283F]
+                            text-white
+                            px-7
+                            py-3.5
+                            rounded-lg
+                            font-semibold
+                            hover:bg-[#1B3A5A]
+                            transition"
+                    >
+                        Contact About Property
+                    </button>
+
+
+                  <form
+                    data-favorite-form
+                    data-property-slug="{{ property.slug }}"
+                    method="post"
+                    action="{% url 'toggle-favorite' property.slug %}"
+                >
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+
+                    <button
+                        type="submit"
+                        data-favorite-button
+                        data-favorite-kind="text"
+                        data-add-label="Save Property"
+                        data-remove-label="Remove from Favorites"
+                        class="inline-flex
+                            items-center
+                            justify-center
+                            border
+                            px-7
+                            py-3.5
+                            rounded-lg
+                            font-semibold
+                            transition
+                            hover:border-[#C49A5A]
+                            hover:text-[#C49A5A]
+                            {% if is_favorited %}
+                                border-[#DC2626]
+                                text-[#DC2626]
+                            {% else %}
+                                border-[#E2E8F0]
+                                text-[#12283F]
+                            {% endif %}"
+                    >
+                        {% if is_favorited %}
+                            ♥ Remove from Favorites
+                        {% else %}
+                            ♡ Save Property
+                        {% endif %}
+                    </button>
+                </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- =====================================================
+         INQUIRY MODAL
+    ====================================================== -->
+
+    <div
+        id="inquiry-modal"
+        data-inquiry-modal
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inquiry-modal-title"
+        hidden
+        class="fixed inset-0 z-50 flex items-center justify-center p-6"
+    >
+
+        <div
+            data-inquiry-backdrop
+            class="absolute inset-0 bg-[#0B1220]/60"
+        ></div>
+
+        <div
+            class="relative
+                   w-full
+                   max-w-lg
+                   rounded-2xl
+                   bg-white
+                   p-6
+                   md:p-8
+                   shadow-2xl"
+        >
+
+            <div class="flex items-start justify-between gap-4">
+
+                <div>
+                    <h2 id="inquiry-modal-title" class="text-xl font-bold text-[#12283F]">
+                        Contact about this property
+                    </h2>
+                    <p class="mt-1 text-sm text-[#64748B]">
+                        {{ property.title }}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    data-inquiry-close
+                    aria-label="Close"
+                    class="text-2xl leading-none text-[#94A3B8] hover:text-[#12283F]"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+            <form
+                method="post"
+                action="{% url 'inquiry-create' %}"
+                class="mt-6 space-y-4"
+            >
+                {% csrf_token %}
+                <input type="hidden" name="property" value="{{ property.slug }}">
+                <input type="hidden" name="next" value="{{ request.path }}">
+
+                <div>
+                    <label for="id_name" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Your name
+                    </label>
+                    {{ inquiry_form.name }}
+                </div>
+
+                <div>
+                    <label for="id_email" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Email
+                    </label>
+                    {{ inquiry_form.email }}
+                </div>
+
+                <div>
+                    <label for="id_phone" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Phone (optional)
+                    </label>
+                    {{ inquiry_form.phone }}
+                </div>
+
+                <div>
+                    <label for="id_message" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Message
+                    </label>
+                    {{ inquiry_form.message }}
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full rounded-lg bg-[#12283F] px-5 py-3 font-semibold text-white transition hover:bg-[#1B3A5A]"
+                >
+                    Send inquiry
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</main>
+
+<!-- Vite JavaScript -->
+
+<script type="module" src="{% vite_js %}"></script>
+
+
+{% endblock %}

@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}
+    EST-MGT | Properties
+{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+
+{% block content %}
+
+<main class="bg-[#F8FAFC] min-h-screen">
+
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <section class="bg-white">
+
+        <div class="max-w-7xl mx-auto px-6 py-16">
+
+            <div class="max-w-3xl">
+
+                <p
+                    class="text-sm
+                           font-semibold
+                           uppercase
+                           tracking-[0.15em]
+                           text-[#C49A5A]"
+                >
+                    Explore EST-MGT
+                </p>
+
+                <h1
+                    class="text-4xl
+                           md:text-5xl
+                           font-bold
+                           tracking-tight
+                           text-[#12283F]
+                           mt-3"
+                >
+                    Find Your Next Property
+                </h1>
+
+                <p
+                    class="text-base
+                           md:text-lg
+                           leading-relaxed
+                           text-[#64748B]
+                           mt-4
+                           max-w-2xl"
+                >
+                    Explore quality properties available for sale
+                    and rent in locations that fit your lifestyle.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         FILTERS
+    ====================================================== -->
+
+    <section class="border-y border-[#E2E8F0] bg-white">
+
+        <div class="max-w-7xl mx-auto px-6 py-6">
+
+            <form
+                method="get"
+                action="{% url 'property-list' %}"
+                class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+            >
+                <div>
+                    <label for="location" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Location
+                    </label>
+                    <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        value="{{ selected_filters.location }}"
+                        placeholder="City, state, or address"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] placeholder-[#94A3B8] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                </div>
+
+                <div>
+                    <label for="property_type" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Property type
+                    </label>
+                    <select
+                        id="property_type"
+                        name="property_type"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                        <option value="">Any property type</option>
+                        {% for value, label in property_types %}
+                            <option value="{{ value }}" {% if selected_filters.property_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="listing_type" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Looking for
+                    </label>
+                    <select
+                        id="listing_type"
+                        name="listing_type"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                        <option value="">Buy or rent</option>
+                        {% for value, label in listing_types %}
+                            <option value="{{ value }}" {% if selected_filters.listing_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex items-end gap-3">
+                    <button
+                        type="submit"
+                        class="flex-1 rounded-lg bg-[#12283F] px-5 py-3 font-semibold text-white transition hover:bg-[#1B3A5A]"
+                    >
+                        Apply filters
+                    </button>
+
+                    {% if has_active_filters %}
+                        <a
+                            href="{% url 'property-list' %}"
+                            class="rounded-lg px-3 py-3 text-sm font-semibold text-[#64748B] transition hover:text-[#12283F]"
+                        >
+                            Clear
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         PROPERTY LISTING
+    ====================================================== -->
+
+    <section>
+
+        <div class="max-w-7xl mx-auto px-6 py-16">
+
+
+            <!-- Listing Header -->
+
+            <div
+                class="flex
+                       flex-col
+                       md:flex-row
+                       md:items-center
+                       md:justify-between
+                       gap-4
+                       mb-10"
+            >
+
+                <div>
+
+                    <h2
+                        class="text-2xl
+                               font-bold
+                               text-[#12283F]"
+                    >
+                        Available Properties
+                    </h2>
+
+                    <p
+                        class="text-sm
+                               text-[#64748B]
+                               mt-2"
+                    >
+                        {% if has_active_filters %}
+                            {{ properties|length }} matching propert{{ properties|length|pluralize:"y,ies" }}.
+                        {% else %}
+                            Browse our latest property listings.
+                        {% endif %}
+                    </p>
+
+                </div>
+
+
+                {% if properties %}
+
+                    <p
+                        class="text-sm
+                               font-medium
+                               text-[#64748B]"
+                    >
+                        Showing {{ properties|length }} propert{{ properties|length|pluralize:"y,ies" }}
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+
+
+            <!-- =================================================
+                 PROPERTY GRID
+            ================================================== -->
+
+            <div
+                class="grid
+                       grid-cols-1
+                       md:grid-cols-2
+                       lg:grid-cols-3
+                       gap-x-7
+                       gap-y-10"
+            >
+
+                {% for property in properties %}
+
+
+                    <!-- PROPERTY CARD -->
+
+                    <article
+                        class="group
+                               bg-white
+                               rounded-2xl
+                               overflow-hidden
+                               border
+                               border-[#E2E8F0]
+                               transition
+                               duration-300
+                               hover:-translate-y-1
+                               hover:shadow-xl"
+                    >
+
+
+                        <!-- =====================================
+                             PROPERTY IMAGE
+                        ====================================== -->
+
+                        <div
+                            class="relative
+                                   h-72
+                                   overflow-hidden"
+                        >
+
+                            {% if property.image %}
+
+                                <img
+                                    src="{{ property.image.url }}"
+                                    alt="{{ property.title }}"
+                                    loading="lazy"
+                                    decoding="async"
+                                    class="w-full
+                                           h-full
+                                           object-cover
+                                           transition
+                                           duration-500
+                                           group-hover:scale-105"
+                                >
+
+                            {% else %}
+
+                                <div
+                                    class="w-full
+                                           h-full
+                                           bg-[#F1F5F9]
+                                           flex
+                                           items-center
+                                           justify-center"
+                                >
+
+                                    <p class="text-[#94A3B8]">
+                                        No image available
+                                    </p>
+
+                                </div>
+
+                            {% endif %}
+
+
+                            <!-- Listing Type -->
+
+                            <div
+                                class="absolute
+                                       top-5
+                                       left-5"
+                            >
+
+                                <span
+                                    class="inline-flex
+                                           items-center
+                                           px-3
+                                           py-1.5
+                                           rounded-full
+                                           bg-[#12283F]
+                                           text-white
+                                           text-xs
+                                           font-bold
+                                           shadow-md"
+                                >
+                                    {{ property.get_listing_type_display }}
+                                </span>
+
+                            </div>
+
+
+                            <!-- Favorite -->
+
+                            <form
+                                data-favorite-form
+                                data-property-slug="{{ property.slug }}"
+                                method="post"
+                                action="{% url 'toggle-favorite' property.slug %}"
+                                class="absolute top-5 right-5"
+                            >
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                                <button
+                                    data-favorite-button
+                                    data-favorite-kind="icon"
+                                    data-add-label="Add {{ property.title }} to favorites"
+                                    data-remove-label="Remove {{ property.title }} from favorites"
+                                    type="submit"
+                                    class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md transition
+                                        {% if property.id in favorite_property_ids %}
+                                            text-[#DC2626]
+                                        {% else %}
+                                            text-[#94A3B8] hover:text-[#DC2626]
+                                        {% endif %}"
+                                    aria-label="{% if property.id in favorite_property_ids %}Remove {{ property.title }} from favorites{% else %}Add {{ property.title }} to favorites{% endif %}"
+                                >
+                                    {% if property.id in favorite_property_ids %}♥{% else %}♡{% endif %}
+                                </button>
+                            </form>
+
+                        </div>
+
+
+
+                        <!-- =====================================
+                             PROPERTY DETAILS
+                        ====================================== -->
+
+                        <div class="p-6">
+
+
+                            <!-- Property Type -->
+
+                            <p
+                                class="text-xs
+                                       font-semibold
+                                       uppercase
+                                       tracking-wide
+                                       text-[#C49A5A]"
+                            >
+                                {{ property.get_property_type_display }}
+                            </p>
+
+
+                            <!-- Title -->
+
+                            <h2
+                                class="text-xl
+                                       font-bold
+                                       leading-snug
+                                       text-[#12283F]
+                                       mt-2"
+                            >
+                                {{ property.title }}
+                            </h2>
+
+
+                            <!-- Location -->
+
+                            <p
+                                class="text-sm
+                                       text-[#64748B]
+                                       mt-3"
+                            >
+                                📍 {{ property.city }}, {{ property.state }}
+                            </p>
+
+
+                            <!-- Price -->
+
+                            <p
+                                class="text-2xl
+                                       font-bold
+                                       text-[#12283F]
+                                       mt-5"
+                            >
+                                ₦{{ property.price }}
+                            </p>
+
+
+                            <!-- Property Features -->
+
+                            <div
+                                class="flex
+                                       items-center
+                                       gap-5
+                                       mt-5
+                                       pt-5
+                                       border-t
+                                       border-[#E2E8F0]
+                                       text-sm
+                                       text-[#64748B]"
+                            >
+
+                                <span>
+                                    {{ property.bedrooms }} Beds
+                                </span>
+
+                                <span>
+                                    {{ property.bathrooms }} Baths
+                                </span>
+
+                                <span>
+                                    {{ property.area }} m²
+                                </span>
+
+                            </div>
+
+
+                            <!-- View Property -->
+
+                            <a
+                                href="{{ property.get_absolute_url }}"
+                                class="inline-flex
+                                       items-center
+                                       mt-6
+                                       text-sm
+                                       font-semibold
+                                       text-[#12283F]
+                                       hover:text-[#C49A5A]
+                                       transition"
+                            >
+                                View Property
+
+                                <span class="ml-2">
+                                    →
+                                </span>
+
+                            </a>
+
+                        </div>
+
+                    </article>
+
+
+                {% empty %}
+
+
+                    <!-- EMPTY STATE -->
+
+                    <div
+                        class="col-span-full
+                               bg-white
+                               rounded-2xl
+                               border
+                               border-[#E2E8F0]
+                               px-6
+                               py-20
+                               text-center"
+                    >
+
+                        <div
+                            class="w-16
+                                   h-16
+                                   mx-auto
+                                   rounded-full
+                                   bg-[#F1F5F9]
+                                   flex
+                                   items-center
+                                   justify-center"
+                        >
+
+                            <span class="text-2xl">
+                                🏠
+                            </span>
+
+                        </div>
+
+
+                        <h2
+                            class="text-xl
+                                   font-bold
+                                   text-[#12283F]
+                                   mt-5"
+                        >
+                            {% if has_active_filters %}
+                                No matching properties found
+                            {% else %}
+                                No properties available
+                            {% endif %}
+                        </h2>
+
+
+                        <p
+                            class="text-[#64748B]
+                                   mt-2"
+                        >
+                            {% if has_active_filters %}
+                                Try removing one or more filters to see more properties.
+                                <a href="{% url 'property-list' %}" class="font-semibold text-[#12283F] hover:text-[#C49A5A]">
+                                    Clear filters
+                                </a>
+                            {% else %}
+                                There are currently no properties
+                                available. Please check back soon.
+                            {% endif %}
+                        </p>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- Vite JavaScript -->
+
+<script type="module" src="{% vite_js %}"></script>
+
+
+{% endblock %}

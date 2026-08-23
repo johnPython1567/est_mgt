@@ -124,3 +124,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+staticfiles/
+sqlite_property_backup.json
+
