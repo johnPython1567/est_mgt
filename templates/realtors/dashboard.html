@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | Realtor dashboard{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<section class="min-h-[60vh] bg-[#F8FAFC] px-6 py-16">
+    <div class="mx-auto max-w-5xl">
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">Realtor dashboard</p>
+                <h1 class="mt-3 text-3xl font-bold text-[#12283F]">Your listings</h1>
+            </div>
+
+            
+                href="{% url 'property-create' %}"
+                class="inline-flex items-center justify-center rounded-lg bg-[#12283F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
+            >
+                + Add a listing
+            </a>
+        </div>
+
+        <div class="mt-10 rounded-2xl border border-[#E2E8F0] bg-white">
+
+            {% if properties %}
+                <ul class="divide-y divide-[#E2E8F0]">
+                    {% for property in properties %}
+                        <li class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6">
+                            <div>
+                                <a href="{{ property.get_absolute_url }}" class="font-semibold text-[#12283F] hover:text-[#C49A5A]">
+                                    {{ property.title }}
+                                </a>
+                                <p class="mt-1 text-sm text-[#64748B]">
+                                    {{ property.city }}, {{ property.state }} &middot; ₦{{ property.price }}
+                                </p>
+                                <p class="mt-1 text-xs font-semibold uppercase tracking-wide {% if property.is_published %}text-green-600{% else %}text-[#94A3B8]{% endif %}">
+                                    {% if property.is_published %}Published{% else %}Draft{% endif %}
+                                </p>
+                            </div>
+
+                            
+                                href="{% url 'property-edit' property.slug %}"
+                                class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+                            >
+                                Edit
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="p-10 text-center">
+                    <p class="text-[#64748B]">You haven't created any listings yet.</p>
+                    <a href="{% url 'property-create' %}" class="mt-4 inline-block font-semibold text-[#12283F] hover:text-[#C49A5A]">
+                        Create your first listing →
+                    </a>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

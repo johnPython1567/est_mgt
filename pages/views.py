@@ -1,18 +1,27 @@
+from decimal import Decimal, InvalidOperation
+
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, TemplateView
+from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.text import slugify
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 
-from .forms import InquiryForm, LoginForm, RegistrationForm
-from .models import Property, Favorite, Inquiry
+from .forms import (
+    InquiryForm,
+    LoginForm,
+    PropertyForm,
+    RealtorApplicationForm,
+    RegistrationForm,
+)
+from .models import Property, Favorite, Inquiry, Realtor
 
 
 class HomeView(TemplateView):
@@ -46,12 +55,45 @@ class PropertyListView(ListView):
     model = Property
     template_name = "pages/properties.html"
     context_object_name = "properties"
+    paginate_by = 9
+
+    ORDERING_CHOICES = {
+        "newest": "-created_at",
+        "oldest": "created_at",
+        "price_asc": "price",
+        "price_desc": "-price",
+    }
+
+    def _parse_decimal(self, raw):
+        raw = (raw or "").strip()
+        if not raw:
+            return None
+        try:
+            value = Decimal(raw)
+        except (InvalidOperation, ValueError):
+            return None
+        if value < 0:
+            return None
+        return value
+
+    def _parse_positive_int(self, raw):
+        raw = (raw or "").strip()
+        if not raw:
+            return None
+        try:
+            value = int(raw)
+        except ValueError:
+            return None
+        if value < 0:
+            return None
+        return value
 
     def get_filter_values(self):
         """Return only valid, safe-to-display filter values."""
         location = self.request.GET.get("location", "").strip()[:100]
         property_type = self.request.GET.get("property_type", "")
         listing_type = self.request.GET.get("listing_type", "")
+        ordering = self.request.GET.get("ordering", "newest")
 
         valid_property_types = {
             value for value, _ in Property.PROPERTY_TYPES
@@ -60,6 +102,13 @@ class PropertyListView(ListView):
             value for value, _ in Property.LISTING_TYPES
         }
 
+        min_price = self._parse_decimal(self.request.GET.get("min_price"))
+        max_price = self._parse_decimal(self.request.GET.get("max_price"))
+
+        # Don't let an inverted range silently return nothing confusing.
+        if min_price is not None and max_price is not None and min_price > max_price:
+            min_price, max_price = max_price, min_price
+
         return {
             "location": location,
             "property_type": (
@@ -67,6 +116,13 @@ class PropertyListView(ListView):
             ),
             "listing_type": (
                 listing_type if listing_type in valid_listing_types else ""
+            ),
+            "min_price": min_price,
+            "max_price": max_price,
+            "bedrooms": self._parse_positive_int(self.request.GET.get("bedrooms")),
+            "bathrooms": self._parse_positive_int(self.request.GET.get("bathrooms")),
+            "ordering": (
+                ordering if ordering in self.ORDERING_CHOICES else "newest"
             ),
         }
 
@@ -91,16 +147,49 @@ class PropertyListView(ListView):
         if listing_type:
             queryset = queryset.filter(listing_type=listing_type)
 
+        if filters["min_price"] is not None:
+            queryset = queryset.filter(price__gte=filters["min_price"])
+
+        if filters["max_price"] is not None:
+            queryset = queryset.filter(price__lte=filters["max_price"])
+
+        if filters["bedrooms"] is not None:
+            queryset = queryset.filter(bedrooms__gte=filters["bedrooms"])
+
+        if filters["bathrooms"] is not None:
+            queryset = queryset.filter(bathrooms__gte=filters["bathrooms"])
+
+        queryset = queryset.order_by(
+            self.ORDERING_CHOICES[filters["ordering"]]
+        )
+
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         filters = self.get_filter_values()
 
+        # Ordering defaults to "newest" even with no other filters active,
+        # so exclude it from the "are any filters active" check.
+        active_filter_values = {
+            key: value for key, value in filters.items() if key != "ordering"
+        }
+
         context["property_types"] = Property.PROPERTY_TYPES
         context["listing_types"] = Property.LISTING_TYPES
+        context["ordering_choices"] = [
+            ("newest", "Newest first"),
+            ("oldest", "Oldest first"),
+            ("price_asc", "Price: low to high"),
+            ("price_desc", "Price: high to low"),
+        ]
         context["selected_filters"] = filters
-        context["has_active_filters"] = any(filters.values())
+        context["has_active_filters"] = any(active_filter_values.values())
+
+        # Preserve every filter (minus "page") across pagination links.
+        querystring = self.request.GET.copy()
+        querystring.pop("page", None)
+        context["querystring"] = querystring.urlencode()
 
         context["favorite_property_ids"] = set()
 
@@ -278,4 +367,143 @@ class InquiryCreateView(CreateView):
             for error in error_list:
                 messages.error(self.request, error)
 
-        return redirect(self.property_obj.get_absolute_url())    
+        return redirect(self.property_obj.get_absolute_url())
+
+
+def generate_unique_slug(title, exclude_pk=None):
+    base_slug = slugify(title)[:190] or "property"
+    slug = base_slug
+    counter = 1
+
+    queryset = Property.objects.all()
+    if exclude_pk is not None:
+        queryset = queryset.exclude(pk=exclude_pk)
+
+    while queryset.filter(slug=slug).exists():
+        counter += 1
+        slug = f"{base_slug}-{counter}"
+
+    return slug
+
+
+class VerifiedRealtorRequiredMixin(LoginRequiredMixin):
+    """Only lets verified realtors through; everyone else is sent to
+    the application page, whether they haven't applied yet or are
+    still waiting on approval."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            realtor_profile = getattr(request.user, "realtor_profile", None)
+
+            if not realtor_profile or not realtor_profile.is_verified:
+                messages.error(
+                    request,
+                    "You need an approved realtor account to access this page.",
+                )
+                return redirect("realtor-apply")
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class RealtorApplyView(LoginRequiredMixin, TemplateView):
+    template_name = "realtors/apply.html"
+    login_url = reverse_lazy("login")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["realtor_profile"] = getattr(
+            self.request.user, "realtor_profile", None
+        )
+
+        if not context["realtor_profile"] and "form" not in context:
+            context["form"] = RealtorApplicationForm()
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        if getattr(request.user, "realtor_profile", None):
+            messages.info(
+                request, "You have already applied to become a realtor."
+            )
+            return redirect("realtor-apply")
+
+        form = RealtorApplicationForm(request.POST)
+
+        if form.is_valid():
+            realtor = form.save(commit=False)
+            realtor.user = request.user
+            realtor.save()
+
+            messages.success(
+                request,
+                "Your realtor application has been submitted for review.",
+            )
+            return redirect("realtor-apply")
+
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+class RealtorDashboardView(VerifiedRealtorRequiredMixin, TemplateView):
+    template_name = "realtors/dashboard.html"
+    login_url = reverse_lazy("login")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["properties"] = Property.objects.filter(
+            realtor=self.request.user.realtor_profile
+        )
+
+        return context
+
+
+class PropertyCreateView(VerifiedRealtorRequiredMixin, CreateView):
+    model = Property
+    form_class = PropertyForm
+    template_name = "realtors/property_form.html"
+    login_url = reverse_lazy("login")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = False
+        return context
+
+    def form_valid(self, form):
+        property_obj = form.save(commit=False)
+        property_obj.realtor = self.request.user.realtor_profile
+        property_obj.slug = generate_unique_slug(property_obj.title)
+        property_obj.save()
+
+        messages.success(self.request, "Listing created.")
+        return redirect("realtor-dashboard")
+
+
+class PropertyUpdateView(VerifiedRealtorRequiredMixin, UpdateView):
+    model = Property
+    form_class = PropertyForm
+    template_name = "realtors/property_form.html"
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+    login_url = reverse_lazy("login")
+
+    def get_queryset(self):
+        # A realtor may only edit their own listings.
+        return Property.objects.filter(
+            realtor=self.request.user.realtor_profile
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = True
+        return context
+
+    def form_valid(self, form):
+        # Keep the slug stable on edit so existing links/favorites
+        # to this property keep working.
+        property_obj = form.save(commit=False)
+        property_obj.slug = self.object.slug
+        property_obj.save()
+
+        messages.success(self.request, "Listing updated.")
+        return redirect("realtor-dashboard")

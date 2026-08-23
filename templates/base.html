@@ -104,15 +104,30 @@
 
                     <div class="hidden md:flex items-center gap-4">
 
-                        {% if request.user.is_authenticated %}
+                            {% if request.user.is_authenticated %}
 
-                            <a
-                                href="{% url 'profile' %}"
+                                {% if request.user.realtor_profile.is_verified %}
+                                
+                                   <a href="" href="{% url 'realtor-dashboard' %}"
+                                    class="text-sm font-semibold text-[#64748B] hover:text-[#12283F] transition"
+                                >
+                                    Realtor dashboard
+                                </a>
+                            {% elif not request.user.realtor_profile %}
+                                
+                                   <a href="{% url 'realtor-apply' %}"
+                                    class="text-sm font-semibold text-[#64748B] hover:text-[#12283F] transition"
+                                >
+                                    Become a realtor
+                                </a>
+                            {% endif %}
+
+                            
+                               <a href="{% url 'profile' %}"
                                 class="text-sm font-semibold text-[#12283F] hover:text-[#1B3A5A] transition"
                             >
                                 Hi, {{ request.user.username }}
                             </a>
-
                             <form method="post" action="{% url 'logout' %}">
                                 {% csrf_token %}
                                 <button

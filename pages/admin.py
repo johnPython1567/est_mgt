@@ -1,10 +1,5 @@
 from django.contrib import admin
-from .models import Inquiry, Property
-
-# Register your models here.
-from django.contrib import admin
-from .models import Property
-
+from .models import Inquiry, Property, Realtor
 
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
@@ -14,6 +9,7 @@ class PropertyAdmin(admin.ModelAdmin):
         "listing_type",
         "price",
         "city",
+        "realtor",
         "featured",
         "is_published",
         "created_at",
@@ -62,3 +58,34 @@ class InquiryAdmin(admin.ModelAdmin):
     )
 
     autocomplete_fields = ("property",)
+
+
+@admin.action(description="Approve selected realtor applications")
+def approve_realtors(modeladmin, request, queryset):
+    updated = queryset.filter(is_verified=False).update(
+        is_verified=True,
+        verified_at=timezone.now(),
+    )
+    modeladmin.message_user(request, f"{updated} realtor(s) approved.")
+
+
+@admin.register(Realtor)
+class RealtorAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "agency",
+        "phone",
+        "is_verified",
+        "applied_at",
+    )
+
+    list_filter = ("is_verified",)
+
+    search_fields = (
+        "user__username",
+        "user__email",
+        "agency",
+        "phone",
+    )
+
+    actions = [approve_realtors]

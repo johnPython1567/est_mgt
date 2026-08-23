@@ -17,4 +17,8 @@ urlpatterns = [
     path('logout/', views.UserLogoutView.as_view(), name='logout'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('inquiries/create/', views.InquiryCreateView.as_view(), name='inquiry-create'),
+        path('realtor/apply/', views.RealtorApplyView.as_view(), name='realtor-apply'),
+    path('realtor/dashboard/', views.RealtorDashboardView.as_view(), name='realtor-dashboard'),
+    path('realtor/properties/create/', views.PropertyCreateView.as_view(), name='property-create'),
+    path('realtor/properties/<slug:slug>/edit/', views.PropertyUpdateView.as_view(), name='property-edit'),
 ]

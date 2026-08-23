@@ -55,6 +55,14 @@ class Property(models.Model):
         featured = models.BooleanField(default=False)
         is_published = models.BooleanField(default=True)
 
+        realtor = models.ForeignKey(
+            "Realtor",
+            on_delete=models.SET_NULL,
+            null=True,
+            blank=True,
+            related_name="properties",
+        )
+
         created_at = models.DateTimeField(auto_now_add=True)
         updated_at = models.DateTimeField(auto_now=True)
         image = models.ImageField(
@@ -143,3 +151,29 @@ class Inquiry(models.Model):
 
     def __str__(self):
         return f"Inquiry from {self.name} about {self.property.title}"
+
+
+class Realtor(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="realtor_profile",
+    )
+
+    bio = models.TextField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    agency = models.CharField(max_length=150, blank=True)
+    photo = models.ImageField(
+        upload_to="realtors/",
+        blank=True,
+        null=True,
+    )
+
+    is_verified = models.BooleanField(default=False)
+
+    applied_at = models.DateTimeField(auto_now_add=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        status = "Verified" if self.is_verified else "Pending"
+        return f"{self.user.username} ({status})"

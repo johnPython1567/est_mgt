@@ -128,6 +128,89 @@
                     </select>
                 </div>
 
+                <div>
+                    <label for="min_price" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Min price (₦)
+                    </label>
+                    <input
+                        type="number"
+                        min="0"
+                        id="min_price"
+                        name="min_price"
+                        value="{{ selected_filters.min_price|default_if_none:'' }}"
+                        placeholder="No minimum"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] placeholder-[#94A3B8] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                </div>
+
+                <div>
+                    <label for="max_price" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Max price (₦)
+                    </label>
+                    <input
+                        type="number"
+                        min="0"
+                        id="max_price"
+                        name="max_price"
+                        value="{{ selected_filters.max_price|default_if_none:'' }}"
+                        placeholder="No maximum"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] placeholder-[#94A3B8] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                </div>
+
+                <div>
+                    <label for="bedrooms" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Min bedrooms
+                    </label>
+                    <select
+                        id="bedrooms"
+                        name="bedrooms"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                        <option value="">Any</option>
+                        {% for count in "12345" %}
+                            <option value="{{ count }}" {% if selected_filters.bedrooms|stringformat:"s" == count %}selected{% endif %}>
+                                {{ count }}+
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="bathrooms" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Min bathrooms
+                    </label>
+                    <select
+                        id="bathrooms"
+                        name="bathrooms"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                        <option value="">Any</option>
+                        {% for count in "12345" %}
+                            <option value="{{ count }}" {% if selected_filters.bathrooms|stringformat:"s" == count %}selected{% endif %}>
+                                {{ count }}+
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="ordering" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Sort by
+                    </label>
+                    <select
+                        id="ordering"
+                        name="ordering"
+                        class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] focus:border-[#12283F] focus:ring-[#12283F]"
+                    >
+                        {% for value, label in ordering_choices %}
+                            <option value="{{ value }}" {% if selected_filters.ordering == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
                 <div class="flex items-end gap-3">
                     <button
                         type="submit"
@@ -137,8 +220,8 @@
                     </button>
 
                     {% if has_active_filters %}
-                        <a
-                            href="{% url 'property-list' %}"
+                        
+                           <a href="{% url 'property-list' %}"
                             class="rounded-lg px-3 py-3 text-sm font-semibold text-[#64748B] transition hover:text-[#12283F]"
                         >
                             Clear
@@ -439,8 +522,8 @@
 
                             <!-- View Property -->
 
-                            <a
-                                href="{{ property.get_absolute_url }}"
+                            
+                               <a href="{{ property.get_absolute_url }}"
                                 class="inline-flex
                                        items-center
                                        mt-6
@@ -531,6 +614,44 @@
                 {% endfor %}
 
             </div>
+
+
+            <!-- =================================================
+                 PAGINATION
+            ================================================== -->
+
+            {% if is_paginated %}
+
+                <nav
+                    aria-label="Property list pagination"
+                    class="flex items-center justify-center gap-2 mt-14"
+                >
+
+                    {% if page_obj.has_previous %}
+                        
+                            <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                            class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+                        >
+                            Previous
+                        </a>
+                    {% endif %}
+
+                    <span class="px-4 py-2 text-sm font-medium text-[#64748B]">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        
+                            <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                            class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+                        >
+                            Next
+                        </a>
+                    {% endif %}
+
+                </nav>
+
+            {% endif %}
 
         </div>
 
