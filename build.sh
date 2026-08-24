@@ -4,10 +4,6 @@
 # silently go live.
 set -o errexit
 
-# Temporary diagnostic: confirms whether Render's build environment
-# actually has DATABASE_URL set, without printing the real value.
-# Remove this block once the database connection is confirmed working.
-python3 -c "import os; print('DEBUG: DATABASE_URL is set:', 'DATABASE_URL' in os.environ)"
 
 pip install -r requirements.txt
 
