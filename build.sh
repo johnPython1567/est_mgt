@@ -10,6 +10,13 @@ pip install -r requirements.txt
 # something to actually collect from static/dist/.
 cd frontend
 npm install
+
+# Some CI/build environments (Render's included) don't reliably
+# preserve the executable bit on npm's locally-installed binaries,
+# which causes "vite: Permission denied" even though npm install
+# itself succeeded. Force it explicitly before running the build.
+chmod +x node_modules/.bin/*
+
 npm run build
 cd ..
 
