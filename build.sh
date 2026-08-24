@@ -9,12 +9,15 @@ pip install -r requirements.txt
 # Build the Tailwind CSS / JS bundle so collectstatic below has
 # something to actually collect from static/dist/.
 cd frontend
-npm install
 
-# Some CI/build environments (Render's included) don't reliably
-# preserve the executable bit on npm's locally-installed binaries,
-# which causes "vite: Permission denied" even though npm install
-# itself succeeded. Force it explicitly before running the build.
+# npm ci (not npm install) deletes node_modules first and installs
+# strictly from package-lock.json. This guarantees a clean install
+# every build -- npm install alone can leave a corrupted, half-built
+# node_modules in place if a previous build died partway through,
+# which is exactly what caused the "Cannot find module .../vite/dist
+# /node/cli.js" error on the last attempt.
+npm ci
+
 chmod +x node_modules/.bin/*
 
 npm run build
