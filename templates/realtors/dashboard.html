@@ -17,8 +17,7 @@
                 <h1 class="mt-3 text-3xl font-bold text-[#12283F]">Your listings</h1>
             </div>
 
-            
-             <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3">
                 
                     <a href="{% url 'realtor-inquiries' %}"
                     class="relative inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-3 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
@@ -38,7 +37,6 @@
                     + Add a listing
                 </a>
             </div>
-        </div>
         </div>
 
         <div class="mt-10 rounded-2xl border border-[#E2E8F0] bg-white">
@@ -60,7 +58,7 @@
                             </div>
 
                             
-                              <a  href="{% url 'property-edit' property.slug %}"
+                                <a href="{% url 'property-edit' property.slug %}"
                                 class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
                             >
                                 Edit

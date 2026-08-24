@@ -2,8 +2,25 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+
 
 # Create your models here.
+MAX_IMAGE_SIZE_MB = 10
+
+
+def validate_image_file_size(file):
+    """Reject uploads over MAX_IMAGE_SIZE_MB before they ever reach
+    storage. Without this, an oversized file passes Django's form
+    validation, gets accepted, and only fails when the storage
+    backend (Cloudinary) tries to upload it — which surfaces as a
+    raw, uncaught 500 error instead of a normal form error."""
+    max_size_bytes = MAX_IMAGE_SIZE_MB * 1024 * 1024
+    if file.size > max_size_bytes:
+        raise ValidationError(
+            f"Image file too large ({file.size / 1024 / 1024:.1f}MB). "
+            f"Maximum size is {MAX_IMAGE_SIZE_MB}MB."
+        )   
 
 class Property(models.Model):
         PROPERTY_TYPES = [
@@ -70,6 +87,7 @@ class Property(models.Model):
                             upload_to="properties/",
                             blank=True,
                             null=True,
+                            validators=[validate_image_file_size],
                         )
 
         class Meta:

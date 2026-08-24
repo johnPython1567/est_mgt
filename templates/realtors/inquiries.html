@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load vite %}
 
-{% block page_title %}EST-MGT | Realtor dashboard{% endblock %}
+{% block page_title %}EST-MGT | Inquiries{% endblock %}
 
 {% block vite_link %}
     <link rel="stylesheet" href="{% vite_css %}">
@@ -14,66 +14,101 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">Realtor dashboard</p>
-                <h1 class="mt-3 text-3xl font-bold text-[#12283F]">Your listings</h1>
+                <h1 class="mt-3 text-3xl font-bold text-[#12283F]">Inquiries</h1>
             </div>
 
             
-             <div class="flex items-center gap-3">
-                
-                    <a href="{% url 'realtor-inquiries' %}"
-                    class="relative inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-3 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
-                >
-                    Inquiries
-                    {% if new_inquiry_count %}
-                        <span class="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#DC2626] px-1.5 text-xs font-bold text-white">
-                            {{ new_inquiry_count }}
-                        </span>
-                    {% endif %}
-                </a>
-
-                
-                    <a href="{% url 'property-create' %}"
-                    class="inline-flex items-center justify-center rounded-lg bg-[#12283F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
-                >
-                    + Add a listing
-                </a>
-            </div>
-        </div>
+                <a href="{% url 'realtor-dashboard' %}"
+                class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+            >
+                ← Back to listings
+            </a>
         </div>
 
-        <div class="mt-10 rounded-2xl border border-[#E2E8F0] bg-white">
+        <!-- Status filter -->
+        <form method="get" class="mt-8 flex flex-wrap items-center gap-2">
+            
+                <a href="{% url 'realtor-inquiries' %}"
+                class="rounded-full px-4 py-2 text-sm font-semibold transition
+                    {% if not selected_status %}bg-[#12283F] text-white{% else %}bg-white text-[#64748B] border border-[#E2E8F0] hover:border-[#12283F]{% endif %}"
+            >
+                All
+            </a>
+            {% for value, label in status_choices %}
+                
+                    <a href="?status={{ value }}"
+                    class="rounded-full px-4 py-2 text-sm font-semibold transition
+                        {% if selected_status == value %}bg-[#12283F] text-white{% else %}bg-white text-[#64748B] border border-[#E2E8F0] hover:border-[#12283F]{% endif %}"
+                >
+                    {{ label }}
+                </a>
+            {% endfor %}
+        </form>
 
-            {% if properties %}
+        <div class="mt-6 rounded-2xl border border-[#E2E8F0] bg-white">
+
+            {% if inquiries %}
                 <ul class="divide-y divide-[#E2E8F0]">
-                    {% for property in properties %}
-                        <li class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6">
-                            <div>
-                                <a href="{{ property.get_absolute_url }}" class="font-semibold text-[#12283F] hover:text-[#C49A5A]">
-                                    {{ property.title }}
-                                </a>
-                                <p class="mt-1 text-sm text-[#64748B]">
-                                    {{ property.city }}, {{ property.state }} &middot; ₦{{ property.price }}
-                                </p>
-                                <p class="mt-1 text-xs font-semibold uppercase tracking-wide {% if property.is_published %}text-green-600{% else %}text-[#94A3B8]{% endif %}">
-                                    {% if property.is_published %}Published{% else %}Draft{% endif %}
-                                </p>
-                            </div>
+                    {% for inquiry in inquiries %}
+                        <li class="p-6">
+                            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
 
-                            
-                              <a  href="{% url 'property-edit' property.slug %}"
-                                class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
-                            >
-                                Edit
-                            </a>
+                                <div class="flex-1">
+                                    <a href="{{ inquiry.property.get_absolute_url }}" class="font-semibold text-[#12283F] hover:text-[#C49A5A]">
+                                        {{ inquiry.property.title }}
+                                    </a>
+
+                                    <p class="mt-1 text-sm text-[#172033]">
+                                        {{ inquiry.name }} &middot; {{ inquiry.email }}{% if inquiry.phone %} &middot; {{ inquiry.phone }}{% endif %}
+                                    </p>
+
+                                    <p class="mt-3 text-sm text-[#64748B]">
+                                        {{ inquiry.message }}
+                                    </p>
+
+                                    <p class="mt-2 text-xs text-[#94A3B8]">
+                                        {{ inquiry.created_at|date:"F j, Y, g:i a" }}
+                                    </p>
+                                </div>
+
+                                <form
+                                    method="post"
+                                    action="{% url 'update-inquiry-status' inquiry.pk %}"
+                                    class="flex items-center gap-2"
+                                >
+                                    {% csrf_token %}
+                                    <select
+                                        name="status"
+                                        class="rounded-lg border border-[#CBD5E1] px-3 py-2 text-sm text-[#172033] focus:border-[#12283F] focus:ring-[#12283F]"
+                                    >
+                                        {% for value, label in inquiry.STATUS_CHOICES %}
+                                            <option value="{{ value }}" {% if inquiry.status == value %}selected{% endif %}>
+                                                {{ label }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+
+                                    <button
+                                        type="submit"
+                                        class="rounded-lg bg-[#12283F] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
+                                    >
+                                        Update
+                                    </button>
+                                </form>
+
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
             {% else %}
                 <div class="p-10 text-center">
-                    <p class="text-[#64748B]">You haven't created any listings yet.</p>
-                    <a href="{% url 'property-create' %}" class="mt-4 inline-block font-semibold text-[#12283F] hover:text-[#C49A5A]">
-                        Create your first listing →
-                    </a>
+                    <p class="text-[#64748B]">
+                        {% if selected_status %}
+                            No inquiries with this status.
+                        {% else %}
+                            No inquiries yet on your listings.
+                        {% endif %}
+                    </p>
                 </div>
             {% endif %}
 
