@@ -221,7 +221,7 @@
 
                     {% if has_active_filters %}
                         
-                            href="{% url 'property-list' %}"
+                           <a href="{% url 'property-list' %}"
                             class="rounded-lg px-3 py-3 text-sm font-semibold text-[#64748B] transition hover:text-[#12283F]"
                         >
                             Clear
@@ -543,7 +543,7 @@
                             <!-- View Property -->
 
                             
-                                href="{{ property.get_absolute_url }}"
+                                <a href="{{ property.get_absolute_url }}"
                                 class="inline-flex
                                        items-center
                                        mt-6
@@ -649,7 +649,7 @@
 
                     {% if page_obj.has_previous %}
                         
-                            href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                            <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
                             class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
                         >
                             Previous
@@ -662,7 +662,7 @@
 
                     {% if page_obj.has_next %}
                         
-                            href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                           <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
                             class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
                         >
                             Next
