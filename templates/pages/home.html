@@ -33,10 +33,10 @@
 
             <!-- Property Image -->
 
-            {% if property.image %}
+            {% if property.display_image %}
 
                 <img
-                    src="{{ property.image.url }}"
+                    src="{{ property.display_image.url }}"
                     alt="{{ property.title }}"
                     {% if forloop.first %}
                         fetchpriority="high"
@@ -143,7 +143,7 @@
                     <!-- Details Button -->
 
                     
-                        <a href="{{ property.get_absolute_url }}"
+                        href="{{ property.get_absolute_url }}"
                         class="inline-flex
                                items-center
                                mt-8
@@ -473,7 +473,7 @@
 
 
             
-                <a href="{% url 'property-list' %}"
+                href="{% url 'property-list' %}"
                 class="inline-flex
                        items-center
                        text-sm
@@ -525,10 +525,10 @@
                                    overflow-hidden"
                         >
 
-                            {% if property.image %}
+                            {% if property.display_image %}
 
                                 <img
-                                    src="{{ property.image.url }}"
+                                    src="{{ property.display_image.url }}"
                                     alt="{{ property.title }}"
                                     loading="lazy"
                                     decoding="async"
@@ -699,7 +699,7 @@
                             <!-- Details -->
 
                             
-                                <a href="{{ property.get_absolute_url }}"
+                                href="{{ property.get_absolute_url }}"
                                 class="inline-flex
                                        items-center
                                        mt-5

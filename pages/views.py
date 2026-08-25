@@ -41,7 +41,7 @@ class HomeView(TemplateView):
         featured = list(
             Property.objects.filter(
                 featured=True, is_published=True
-            ).select_related("property_type", "location")
+            ).select_related("property_type", "location").prefetch_related("images")
         )
 
         rng = random.Random(date.today().isoformat())
@@ -57,7 +57,9 @@ class HomeView(TemplateView):
         # Property.Meta.ordering ever changes).
         context["hero_properties"] = Property.objects.filter(
             is_published=True
-        ).select_related("property_type", "location").order_by(
+        ).select_related("property_type", "location").prefetch_related(
+            "images"
+        ).order_by(
             "-created_at"
         )[: self.HERO_COUNT]
 

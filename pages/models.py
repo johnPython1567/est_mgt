@@ -1,3 +1,5 @@
+import random
+from datetime import date
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -164,6 +166,29 @@ class Property(models.Model):
             return self.created_at >= timezone.now() - timezone.timedelta(
                 hours=48
             )
+
+        @property
+        def display_image(self):
+            """Which photo represents this listing on cards/grids
+            today. With no extra gallery photos, this is just the
+            primary image as always. With gallery photos, it rotates
+            once per day -- seeded by today's date plus this
+            property's id, so every visitor sees the same photo for
+            this listing on a given day (no flicker between page
+            loads), and it's decided server-side rather than running
+            a JS timer on every card in a grid at once."""
+            gallery_images = [img.image for img in self.images.all()]
+            pool = ([self.image] if self.image else []) + gallery_images
+
+            if not pool:
+                return None
+
+            if len(pool) == 1:
+                return pool[0]
+
+            seed = f"{date.today().isoformat()}-{self.pk}"
+            rng = random.Random(seed)
+            return rng.choice(pool)
 
 
 class Favorite(models.Model):
