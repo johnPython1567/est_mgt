@@ -102,9 +102,9 @@
                         class="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 text-[#172033] focus:border-[#12283F] focus:ring-[#12283F]"
                     >
                         <option value="">Any property type</option>
-                        {% for value, label in property_types %}
-                            <option value="{{ value }}" {% if selected_filters.property_type == value %}selected{% endif %}>
-                                {{ label }}
+                        {% for pt in property_types %}
+                            <option value="{{ pt.slug }}" {% if selected_filters.property_type == pt.slug %}selected{% endif %}>
+                                {{ pt.name }}
                             </option>
                         {% endfor %}
                     </select>
@@ -221,7 +221,7 @@
 
                     {% if has_active_filters %}
                         
-                           <a href="{% url 'property-list' %}"
+                            <a href="{% url 'property-list' %}"
                             class="rounded-lg px-3 py-3 text-sm font-semibold text-[#64748B] transition hover:text-[#12283F]"
                         >
                             Clear
@@ -374,6 +374,7 @@
 
                             {% endif %}
 
+
                             <!-- Listing Type / New Badge -->
 
                             <div
@@ -470,7 +471,7 @@
                                        tracking-wide
                                        text-[#C49A5A]"
                             >
-                                {{ property.get_property_type_display }}
+                                {{ property.property_type.name }}
                             </p>
 
 
@@ -494,7 +495,7 @@
                                        text-[#64748B]
                                        mt-3"
                             >
-                                📍 {{ property.city }}, {{ property.state }}
+                                📍 {{ property.location.city }}, {{ property.location.state }}
                             </p>
 
 

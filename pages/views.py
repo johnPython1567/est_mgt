@@ -23,7 +23,7 @@ from .forms import (
     RealtorApplicationForm,
     RegistrationForm,
 )
-from .models import Property, Favorite, Inquiry, Realtor
+from .models import Property, Favorite, Inquiry, Realtor, PropertyType
 
 
 class HomeView(TemplateView):
@@ -38,7 +38,9 @@ class HomeView(TemplateView):
         it automatically changes at midnight without any scheduled
         task — no admin action needed to "refresh" the homepage."""
         featured = list(
-            Property.objects.filter(featured=True, is_published=True)
+            Property.objects.filter(
+                featured=True, is_published=True
+            ).select_related("property_type", "location")
         )
 
         rng = random.Random(date.today().isoformat())
@@ -54,11 +56,13 @@ class HomeView(TemplateView):
         # Property.Meta.ordering ever changes).
         context["hero_properties"] = Property.objects.filter(
             is_published=True
-        ).order_by("-created_at")[: self.HERO_COUNT]
+        ).select_related("property_type", "location").order_by(
+            "-created_at"
+        )[: self.HERO_COUNT]
 
         context["featured_properties"] = self.get_daily_featured_properties()
 
-        context["property_types"] = Property.PROPERTY_TYPES
+        context["property_types"] = PropertyType.objects.all()
 
         context["favorite_property_ids"] = set()
 
@@ -118,9 +122,9 @@ class PropertyListView(ListView):
         listing_type = self.request.GET.get("listing_type", "")
         ordering = self.request.GET.get("ordering", "newest")
 
-        valid_property_types = {
-            value for value, _ in Property.PROPERTY_TYPES
-        }
+        valid_property_types = set(
+            PropertyType.objects.values_list("slug", flat=True)
+        )
         valid_listing_types = {
             value for value, _ in Property.LISTING_TYPES
         }
@@ -150,7 +154,9 @@ class PropertyListView(ListView):
         }
 
     def get_queryset(self):
-        queryset = Property.objects.filter(is_published=True)
+        queryset = Property.objects.filter(
+            is_published=True
+        ).select_related("property_type", "location")
 
         filters = self.get_filter_values()
         location = filters["location"]
@@ -159,13 +165,13 @@ class PropertyListView(ListView):
 
         if location:
             queryset = queryset.filter(
-                Q(city__icontains=location)
-                | Q(state__icontains=location)
+                Q(location__city__icontains=location)
+                | Q(location__state__icontains=location)
                 | Q(address__icontains=location)
             )
 
         if property_type:
-            queryset = queryset.filter(property_type=property_type)
+            queryset = queryset.filter(property_type__slug=property_type)
 
         if listing_type:
             queryset = queryset.filter(listing_type=listing_type)
@@ -198,7 +204,7 @@ class PropertyListView(ListView):
             key: value for key, value in filters.items() if key != "ordering"
         }
 
-        context["property_types"] = Property.PROPERTY_TYPES
+        context["property_types"] = PropertyType.objects.all()
         context["listing_types"] = Property.LISTING_TYPES
         context["ordering_choices"] = [
             ("newest", "Newest first"),
@@ -233,6 +239,20 @@ class PropertyDetailView(DetailView):
     context_object_name = "property"
     slug_field = "slug"
     slug_url_kwarg = "slug"
+
+    def get_queryset(self):
+        # Published listings are visible to everyone. An unpublished
+        # (draft) listing is only visible to the realtor who owns it,
+        # so they can preview it from their dashboard — everyone
+        # else gets a 404, same as a listing that doesn't exist.
+        queryset = Property.objects.select_related("property_type", "location")
+
+        if self.request.user.is_authenticated:
+            return queryset.filter(
+                Q(is_published=True) | Q(realtor__user=self.request.user)
+            )
+
+        return queryset.filter(is_published=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -476,12 +496,13 @@ class RealtorDashboardView(VerifiedRealtorRequiredMixin, TemplateView):
 
         context["properties"] = Property.objects.filter(
             realtor=self.request.user.realtor_profile
-        )
+        ).select_related("property_type", "location")
 
         context["new_inquiry_count"] = Inquiry.objects.filter(
             property__realtor=self.request.user.realtor_profile,
             status="new",
         ).count()
+
         return context
 
 
@@ -518,7 +539,7 @@ class PropertyUpdateView(VerifiedRealtorRequiredMixin, UpdateView):
         # A realtor may only edit their own listings.
         return Property.objects.filter(
             realtor=self.request.user.realtor_profile
-        )
+        ).select_related("property_type", "location")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -556,12 +577,6 @@ class RealtorInquiryListView(VerifiedRealtorRequiredMixin, ListView):
             queryset = queryset.filter(status=status)
 
         return queryset
-    
-    def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["status_choices"] = self.STATUS_FILTER_CHOICES
-            context["selected_status"] = self.request.GET.get("status", "")
-            return context
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

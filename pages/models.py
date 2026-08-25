@@ -1,11 +1,11 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
-from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from django.utils.text import slugify
 
 
-# Create your models here.
 MAX_IMAGE_SIZE_MB = 10
 
 
@@ -20,20 +20,56 @@ def validate_image_file_size(file):
         raise ValidationError(
             f"Image file too large ({file.size / 1024 / 1024:.1f}MB). "
             f"Maximum size is {MAX_IMAGE_SIZE_MB}MB."
-        )   
+        )
+
+# Create your models here.
+
+class PropertyType(models.Model):
+    """Replaces the old hardcoded PROPERTY_TYPES choices list --
+    admins can now add/rename property types from Django admin
+    without a code deploy."""
+
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(unique=True, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Location(models.Model):
+    """A named area (e.g. "Lekki, Lagos"), distinct from a specific
+    property's street address. Multiple properties in the same area
+    share one Location, so admins can manage/rename areas in one
+    place instead of every property carrying its own free-text
+    city/state."""
+
+    name = models.CharField(max_length=150, unique=True)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    country = models.CharField(max_length=100, default="Nigeria")
+    slug = models.SlugField(unique=True, blank=True)
+
+    class Meta:
+        ordering = ["state", "city", "name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
 
 class Property(models.Model):
-        PROPERTY_TYPES = [
-            ("house", "House"),
-            ("apartment", "Apartment"),
-            ("condo", "Condo"),
-            ("townhouse", "Townhouse"),
-            ("land", "Land"),
-            ("commercial", "Commercial"),
-            ("office", "Office"),
-            ("warehouse", "Warehouse"),
-        ]
-
         LISTING_TYPES = [
             ("sale", "For Sale"),
             ("rent", "For Rent"),
@@ -44,9 +80,10 @@ class Property(models.Model):
 
         description = models.TextField()
 
-        property_type = models.CharField(
-            max_length=20,
-            choices=PROPERTY_TYPES
+        property_type = models.ForeignKey(
+            PropertyType,
+            on_delete=models.PROTECT,
+            related_name="properties",
         )
 
         listing_type = models.CharField(
@@ -67,8 +104,11 @@ class Property(models.Model):
         )
 
         address = models.CharField(max_length=255)
-        city = models.CharField(max_length=100)
-        state = models.CharField(max_length=100)
+        location = models.ForeignKey(
+            Location,
+            on_delete=models.PROTECT,
+            related_name="properties",
+        )
 
         featured = models.BooleanField(default=False)
         is_published = models.BooleanField(default=True)
@@ -104,7 +144,10 @@ class Property(models.Model):
                     fields=["featured", "is_published"],
                     name="property_feat_pub_idx",
                 ),
-                models.Index(fields=["property_type"], name="property_type_idx"),
+                # No explicit index needed for property_type or
+                # location: Django automatically indexes every
+                # ForeignKey column, so a custom one here would just
+                # duplicate it.
                 models.Index(fields=["listing_type"], name="property_listing_type_idx"),
             ]
 
@@ -113,7 +156,7 @@ class Property(models.Model):
 
         def get_absolute_url(self):
             return reverse("property-detail", args=[self.slug])
-        
+
         @property
         def is_new(self):
             """True if this listing was created within the last 48
@@ -121,6 +164,7 @@ class Property(models.Model):
             return self.created_at >= timezone.now() - timezone.timedelta(
                 hours=48
             )
+
 
 class Favorite(models.Model):
     user = models.ForeignKey(
@@ -150,7 +194,6 @@ class Favorite(models.Model):
         return f"{self.user.username} saved {self.property.title}"
 
 
-
 class Inquiry(models.Model):
     STATUS_CHOICES = [
         ("new", "New"),
@@ -164,6 +207,8 @@ class Inquiry(models.Model):
         related_name="inquiries",
     )
 
+    # Nullable/blank so a guest (not logged in) can still send an inquiry.
+    # If they are logged in, the view attaches their account automatically.
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -189,6 +234,11 @@ class Inquiry(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            # Realtors filtering their inquiry inbox by status (new /
+            # contacted / closed) is the main lookup pattern here.
+            models.Index(fields=["status"], name="inquiry_status_idx"),
+        ]
 
     def __str__(self):
         return f"Inquiry from {self.name} about {self.property.title}"
@@ -208,8 +258,11 @@ class Realtor(models.Model):
         upload_to="realtors/",
         blank=True,
         null=True,
+        validators=[validate_image_file_size],
     )
 
+    # Approval workflow: users apply, an admin verifies them before
+    # they can access the realtor dashboard or create listings.
     is_verified = models.BooleanField(default=False)
 
     applied_at = models.DateTimeField(auto_now_add=True)

@@ -2,25 +2,53 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone
+
+from .models import Favorite, Inquiry, Location, Property, PropertyType, Realtor
 
 
-from .models import Favorite, Inquiry, Property, Realtor
+def make_property_type(name="Apartment"):
+    obj, _ = PropertyType.objects.get_or_create(name=name)
+    return obj
+
+
+def make_location(city="Lagos", state="Lagos"):
+    obj, _ = Location.objects.get_or_create(
+        city=city, state=state, defaults={"name": f"{city}, {state}"}
+    )
+    return obj
+
 
 def make_property(**overrides):
+    # property_type/city/state accept either a plain string (resolved
+    # into a real PropertyType/Location automatically, get_or_create
+    # style) or an existing instance -- this keeps every existing
+    # call site like make_property(property_type="house", city="Abuja")
+    # working unchanged after the move to relational models.
+    property_type = overrides.pop("property_type", "Apartment")
+    if isinstance(property_type, str):
+        property_type = make_property_type(property_type.title())
+
+    location = overrides.pop("location", None)
+    if location is None:
+        city = overrides.pop("city", "Lagos")
+        state = overrides.pop("state", "Lagos")
+        location = make_location(city, state)
+    else:
+        overrides.pop("city", None)
+        overrides.pop("state", None)
+
     defaults = {
         "title": "Sunny Two Bedroom Flat",
         "slug": "sunny-two-bedroom-flat",
         "description": "A bright flat close to the market.",
-        "property_type": "apartment",
+        "property_type": property_type,
         "listing_type": "rent",
         "price": "150000.00",
         "bedrooms": 2,
         "bathrooms": 1,
         "area": 85,
         "address": "12 Marina Road",
-        "city": "Lagos",
-        "state": "Lagos",
+        "location": location,
         "is_published": True,
     }
     defaults.update(overrides)
@@ -396,6 +424,7 @@ class ProfileInquiriesTests(TestCase):
 
         self.assertEqual(list(response.context["inquiries"]), [own_inquiry])
 
+
 def make_verified_realtor(username="realtor1"):
     user_model = get_user_model()
     user = user_model.objects.create_user(
@@ -506,17 +535,24 @@ class VerifiedRealtorAccessTests(TestCase):
 
 class PropertyCreateViewTests(TestCase):
     def setUp(self):
+        self.property_type = make_property_type("House")
         self.url = reverse("property-create")
         self.valid_payload = {
             "title": "New Build Duplex",
             "description": "Spacious duplex.",
-            "property_type": "house",
+            # A real ModelChoiceField (now that property_type is a
+            # relation) expects the related object's PK in POST data,
+            # not the old plain string value.
+            "property_type": self.property_type.pk,
             "listing_type": "sale",
             "price": "25000000",
             "bedrooms": 4,
             "bathrooms": 3,
             "area": 200,
             "address": "5 Palm Avenue",
+            # city/state stay as plain text -- PropertyForm still
+            # exposes these as ordinary CharFields, resolving them to
+            # a Location behind the scenes on save().
             "city": "Lagos",
             "state": "Lagos",
         }
@@ -568,15 +604,15 @@ class PropertyUpdateViewTests(TestCase):
         payload = {
             "title": property_obj.title,
             "description": "Updated description.",
-            "property_type": property_obj.property_type,
+            "property_type": property_obj.property_type.pk,
             "listing_type": property_obj.listing_type,
             "price": property_obj.price,
             "bedrooms": property_obj.bedrooms,
             "bathrooms": property_obj.bathrooms,
             "area": property_obj.area,
             "address": property_obj.address,
-            "city": property_obj.city,
-            "state": property_obj.state,
+            "city": property_obj.location.city,
+            "state": property_obj.location.state,
         }
 
         response = self.client.post(
@@ -625,3 +661,361 @@ class RealtorAdminActionTests(TestCase):
         self.assertTrue(realtor.is_verified)
         self.assertIsNotNone(realtor.verified_at)
         self.assertLessEqual(realtor.verified_at, timezone.now())
+
+
+class PropertyIsNewTests(TestCase):
+    def test_freshly_created_property_is_new(self):
+        property_obj = make_property()
+        self.assertTrue(property_obj.is_new)
+
+    def test_property_older_than_48_hours_is_not_new(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        property_obj = make_property()
+        old_timestamp = timezone.now() - timedelta(hours=49)
+        Property.objects.filter(pk=property_obj.pk).update(
+            created_at=old_timestamp
+        )
+        property_obj.refresh_from_db()
+
+        self.assertFalse(property_obj.is_new)
+
+    def test_property_just_under_48_hours_is_still_new(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        property_obj = make_property()
+        recent_timestamp = timezone.now() - timedelta(hours=47)
+        Property.objects.filter(pk=property_obj.pk).update(
+            created_at=recent_timestamp
+        )
+        property_obj.refresh_from_db()
+
+        self.assertTrue(property_obj.is_new)
+
+
+class HomeViewFeaturedRotationTests(TestCase):
+    def setUp(self):
+        for index in range(10):
+            make_property(
+                title=f"Featured {index}",
+                slug=f"featured-{index}",
+                featured=True,
+            )
+
+    def test_homepage_loads_successfully(self):
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_featured_properties_are_capped_at_six(self):
+        response = self.client.get(reverse("home"))
+        self.assertEqual(len(response.context["featured_properties"]), 6)
+
+    def test_same_day_requests_return_the_same_featured_set(self):
+        first = self.client.get(reverse("home"))
+        second = self.client.get(reverse("home"))
+
+        first_slugs = [p.slug for p in first.context["featured_properties"]]
+        second_slugs = [p.slug for p in second.context["featured_properties"]]
+
+        self.assertEqual(first_slugs, second_slugs)
+
+    def test_hero_properties_are_ordered_newest_first(self):
+        response = self.client.get(reverse("home"))
+        hero = list(response.context["hero_properties"])
+        timestamps = [p.created_at for p in hero]
+        self.assertEqual(timestamps, sorted(timestamps, reverse=True))
+
+
+class PropertyDetailViewVisibilityTests(TestCase):
+    def setUp(self):
+        self.draft = make_property(
+            title="Draft Listing",
+            slug="draft-listing",
+            is_published=False,
+        )
+
+    def test_anonymous_user_gets_404_for_unpublished_property(self):
+        response = self.client.get(self.draft.get_absolute_url())
+        self.assertEqual(response.status_code, 404)
+
+    def test_other_authenticated_user_gets_404_for_unpublished_property(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(self.draft.get_absolute_url())
+        self.assertEqual(response.status_code, 404)
+
+    def test_owning_realtor_can_preview_their_own_unpublished_property(self):
+        user, realtor = make_verified_realtor()
+        self.draft.realtor = realtor
+        self.draft.save()
+
+        self.client.force_login(user)
+        response = self.client.get(self.draft.get_absolute_url())
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_published_property_is_visible_to_everyone(self):
+        published = make_property(
+            title="Published Listing",
+            slug="published-listing",
+            is_published=True,
+        )
+        response = self.client.get(published.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+
+
+class RealtorInquiryListViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("realtor-inquiries")
+
+    def test_requires_verified_realtor(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username="ada", password="SafePassword123!"
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(self.url)
+        self.assertRedirects(response, reverse("realtor-apply"))
+
+    def test_only_shows_inquiries_on_own_listings(self):
+        owner_user, owner_realtor = make_verified_realtor(username="owner")
+        _, other_realtor = make_verified_realtor(username="other")
+
+        own_property = make_property(realtor=owner_realtor)
+        other_property = make_property(
+            title="Someone Else's Listing",
+            slug="someone-elses-listing",
+            realtor=other_realtor,
+        )
+
+        own_inquiry = Inquiry.objects.create(
+            property=own_property, name="Buyer A", email="a@x.com", message="hi"
+        )
+        Inquiry.objects.create(
+            property=other_property, name="Buyer B", email="b@x.com", message="hi"
+        )
+
+        self.client.force_login(owner_user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(list(response.context["inquiries"]), [own_inquiry])
+
+    def test_filters_by_status(self):
+        user, realtor = make_verified_realtor()
+        property_obj = make_property(realtor=realtor)
+
+        new_inquiry = Inquiry.objects.create(
+            property=property_obj, name="A", email="a@x.com", message="hi",
+            status="new",
+        )
+        Inquiry.objects.create(
+            property=property_obj, name="B", email="b@x.com", message="hi",
+            status="closed",
+        )
+
+        self.client.force_login(user)
+        response = self.client.get(self.url, {"status": "new"})
+
+        self.assertEqual(list(response.context["inquiries"]), [new_inquiry])
+
+
+class UpdateInquiryStatusTests(TestCase):
+    def test_owning_realtor_can_update_status(self):
+        user, realtor = make_verified_realtor()
+        property_obj = make_property(realtor=realtor)
+        inquiry = Inquiry.objects.create(
+            property=property_obj, name="A", email="a@x.com", message="hi",
+        )
+
+        self.client.force_login(user)
+        response = self.client.post(
+            reverse("update-inquiry-status", args=[inquiry.pk]),
+            {"status": "contacted"},
+        )
+
+        self.assertRedirects(response, reverse("realtor-inquiries"))
+        inquiry.refresh_from_db()
+        self.assertEqual(inquiry.status, "contacted")
+
+    def test_other_realtor_cannot_update_status(self):
+        _, owner_realtor = make_verified_realtor(username="owner")
+        other_user, _ = make_verified_realtor(username="intruder")
+
+        property_obj = make_property(realtor=owner_realtor)
+        inquiry = Inquiry.objects.create(
+            property=property_obj, name="A", email="a@x.com", message="hi",
+        )
+
+        self.client.force_login(other_user)
+        response = self.client.post(
+            reverse("update-inquiry-status", args=[inquiry.pk]),
+            {"status": "contacted"},
+        )
+
+        self.assertEqual(response.status_code, 404)
+        inquiry.refresh_from_db()
+        self.assertEqual(inquiry.status, "new")
+
+    def test_invalid_status_is_rejected(self):
+        user, realtor = make_verified_realtor()
+        property_obj = make_property(realtor=realtor)
+        inquiry = Inquiry.objects.create(
+            property=property_obj, name="A", email="a@x.com", message="hi",
+        )
+
+        self.client.force_login(user)
+        self.client.post(
+            reverse("update-inquiry-status", args=[inquiry.pk]),
+            {"status": "not-a-real-status"},
+        )
+
+        inquiry.refresh_from_db()
+        self.assertEqual(inquiry.status, "new")
+
+    def test_requires_login(self):
+        property_obj = make_property()
+        inquiry = Inquiry.objects.create(
+            property=property_obj, name="A", email="a@x.com", message="hi",
+        )
+
+        url = reverse("update-inquiry-status", args=[inquiry.pk])
+        response = self.client.post(url, {"status": "contacted"})
+
+        self.assertRedirects(response, f"{reverse('login')}?next={url}")
+
+
+class RealtorDashboardNewInquiryCountTests(TestCase):
+    def test_counts_only_new_status_on_own_listings(self):
+        user, realtor = make_verified_realtor()
+        property_obj = make_property(realtor=realtor)
+
+        Inquiry.objects.create(
+            property=property_obj, name="A", email="a@x.com", message="hi",
+            status="new",
+        )
+        Inquiry.objects.create(
+            property=property_obj, name="B", email="b@x.com", message="hi",
+            status="new",
+        )
+        Inquiry.objects.create(
+            property=property_obj, name="C", email="c@x.com", message="hi",
+            status="closed",
+        )
+
+        self.client.force_login(user)
+        response = self.client.get(reverse("realtor-dashboard"))
+
+        self.assertEqual(response.context["new_inquiry_count"], 2)
+
+
+class PropertyTypeModelTests(TestCase):
+    def test_string_representation_is_name(self):
+        pt = PropertyType.objects.create(name="Duplex")
+        self.assertEqual(str(pt), "Duplex")
+
+    def test_slug_auto_generates_from_name(self):
+        pt = PropertyType.objects.create(name="Semi-Detached House")
+        self.assertEqual(pt.slug, "semi-detached-house")
+
+    def test_name_must_be_unique(self):
+        PropertyType.objects.create(name="Bungalow")
+        with self.assertRaises(IntegrityError):
+            PropertyType.objects.create(name="Bungalow")
+
+
+class LocationModelTests(TestCase):
+    def test_string_representation_is_name(self):
+        loc = Location.objects.create(
+            name="Lekki, Lagos", city="Lekki", state="Lagos"
+        )
+        self.assertEqual(str(loc), "Lekki, Lagos")
+
+    def test_slug_auto_generates_from_name(self):
+        loc = Location.objects.create(
+            name="Wuse 2, Abuja", city="Wuse 2", state="Abuja"
+        )
+        self.assertEqual(loc.slug, "wuse-2-abuja")
+
+    def test_defaults_country_to_nigeria(self):
+        loc = Location.objects.create(
+            name="Ikeja, Lagos", city="Ikeja", state="Lagos"
+        )
+        self.assertEqual(loc.country, "Nigeria")
+
+
+class PropertyFormLocationTests(TestCase):
+    def test_creating_two_properties_in_the_same_city_reuses_one_location(self):
+        user, realtor = make_verified_realtor()
+        self.client.force_login(user)
+
+        payload_base = {
+            "description": "desc",
+            "property_type": make_property_type("House").pk,
+            "listing_type": "sale",
+            "price": "1000000",
+            "bedrooms": 2,
+            "bathrooms": 2,
+            "area": 100,
+            "address": "1 Test Street",
+            "city": "Enugu",
+            "state": "Enugu",
+        }
+
+        self.client.post(
+            reverse("property-create"),
+            {**payload_base, "title": "First Enugu Listing"},
+        )
+        self.client.post(
+            reverse("property-create"),
+            {**payload_base, "title": "Second Enugu Listing"},
+        )
+
+        self.assertEqual(
+            Location.objects.filter(city="Enugu", state="Enugu").count(), 1
+        )
+        self.assertEqual(Property.objects.count(), 2)
+
+    def test_editing_a_property_prefills_city_and_state(self):
+        user, realtor = make_verified_realtor()
+        property_obj = make_property(
+            realtor=realtor, city="Kano", state="Kano"
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(
+            reverse("property-edit", args=[property_obj.slug])
+        )
+
+        self.assertEqual(response.context["form"].initial.get("city"), "Kano")
+        self.assertContains(response, "Kano")
+
+
+class PropertyListViewPropertyTypeFilterTests(TestCase):
+    def test_filters_by_property_type_slug(self):
+        house_type = make_property_type("House")
+        apartment_type = make_property_type("Apartment")
+
+        house = make_property(
+            title="A House", slug="a-house", property_type=house_type
+        )
+        make_property(
+            title="An Apartment",
+            slug="an-apartment",
+            property_type=apartment_type,
+        )
+
+        response = self.client.get(
+            reverse("property-list"), {"property_type": house_type.slug}
+        )
+        properties = list(response.context["properties"])
+
+        self.assertEqual(properties, [house])

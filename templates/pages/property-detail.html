@@ -23,8 +23,8 @@
 
     <div class="max-w-7xl mx-auto px-6 pt-8">
 
-        <a
-            href="{% url 'property-list' %}"
+        
+           <a href="{% url 'property-list' %}"
             class="inline-flex
                    items-center
                    text-sm
@@ -104,30 +104,8 @@
                 {% endif %}
 
 
-                <!-- Listing Badge -->
-                <div
-                    class="absolute
-                           top-6
-                           left-6"
-                >
-
-                    <span
-                        class="inline-flex
-                               px-4
-                               py-2
-                               rounded-full
-                               bg-[#12283F]
-                               text-white
-                               text-sm
-                               font-bold
-                               shadow-lg"
-                    >
-                        {{ property.get_listing_type_display }}
-                    </span>
-
-                </div> 
-
                 <!-- Listing Badge / New Badge -->
+
                 <div
                     class="absolute
                            top-6
@@ -168,6 +146,7 @@
                     {% endif %}
 
                 </div>
+
 
                 <!-- Favorite Button -->
 
@@ -217,7 +196,7 @@
                            tracking-wider
                            text-[#C49A5A]"
                 >
-                    {{ property.get_property_type_display }}
+                    {{ property.property_type.name }}
                 </p>
 
 
@@ -245,7 +224,7 @@
                            text-[#64748B]
                            mt-4"
                 >
-                    📍 {{ property.city }}, {{ property.state }}
+                    📍 {{ property.location.city }}, {{ property.location.state }}
                 </p>
 
 
@@ -376,7 +355,7 @@
                                    font-bold
                                    text-[#12283F]"
                         >
-                            {{ property.get_property_type_display }}
+                            {{ property.property_type.name }}
                         </p>
 
                         <p
@@ -447,16 +426,16 @@
                         aria-haspopup="dialog"
                         aria-controls="inquiry-modal"
                         class="inline-flex
-                            items-center
-                            justify-center
-                            bg-[#12283F]
-                            text-white
-                            px-7
-                            py-3.5
-                            rounded-lg
-                            font-semibold
-                            hover:bg-[#1B3A5A]
-                            transition"
+                               items-center
+                               justify-center
+                               bg-[#12283F]
+                               text-white
+                               px-7
+                               py-3.5
+                               rounded-lg
+                               font-semibold
+                               hover:bg-[#1B3A5A]
+                               transition"
                     >
                         Contact About Property
                     </button>
@@ -615,6 +594,7 @@
     </div>
 
 </main>
+
 
 <!-- Vite JavaScript -->
 

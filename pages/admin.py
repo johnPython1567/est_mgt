@@ -1,6 +1,10 @@
 from django.contrib import admin
 from django.utils import timezone
-from .models import Inquiry, Property, Realtor
+
+# Register your models here.
+
+from .models import Inquiry, Location, Property, PropertyType, Realtor
+
 
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
@@ -9,12 +13,14 @@ class PropertyAdmin(admin.ModelAdmin):
         "property_type",
         "listing_type",
         "price",
-        "city",
+        "location",
         "realtor",
         "featured",
         "is_published",
         "created_at",
     )
+
+    list_select_related = ("realtor", "realtor__user", "property_type", "location")
 
     list_filter = (
         "property_type",
@@ -26,17 +32,36 @@ class PropertyAdmin(admin.ModelAdmin):
     search_fields = (
         "title",
         "description",
-        "city",
-        "state",
+        "location__city",
+        "location__state",
     )
+
+    autocomplete_fields = ("property_type", "location")
 
     prepopulated_fields = {
         "slug": ("title",)
     }
 
 
+@admin.register(PropertyType)
+class PropertyTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug")
+    search_fields = ("name",)
+    prepopulated_fields = {"slug": ("name",)}
+
+
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ("name", "city", "state", "country")
+    list_filter = ("state", "country")
+    search_fields = ("name", "city", "state")
+    prepopulated_fields = {"slug": ("name",)}
+
+
 @admin.register(Inquiry)
 class InquiryAdmin(admin.ModelAdmin):
+    list_select_related = ("property", "user")
+
     list_display = (
         "name",
         "email",
@@ -61,6 +86,7 @@ class InquiryAdmin(admin.ModelAdmin):
     autocomplete_fields = ("property",)
 
 
+
 @admin.action(description="Approve selected realtor applications")
 def approve_realtors(modeladmin, request, queryset):
     updated = queryset.filter(is_verified=False).update(
@@ -72,6 +98,8 @@ def approve_realtors(modeladmin, request, queryset):
 
 @admin.register(Realtor)
 class RealtorAdmin(admin.ModelAdmin):
+    list_select_related = ("user",)
+
     list_display = (
         "user",
         "agency",
