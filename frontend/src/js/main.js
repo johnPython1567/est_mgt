@@ -323,19 +323,63 @@ const galleryMain = document.querySelector("[data-gallery-main]");
 const galleryThumbs = document.querySelectorAll("[data-gallery-thumb]");
 
 if (galleryMain && galleryThumbs.length) {
-    galleryThumbs.forEach((thumb) => {
-        thumb.addEventListener("click", () => {
-            const fullSrc = thumb.getAttribute("data-full-src");
-            if (fullSrc) {
-                galleryMain.src = fullSrc;
-            }
 
-            galleryThumbs.forEach((t) => {
-                t.classList.remove("border-[#12283F]");
-                t.classList.add("border-transparent");
-            });
-            thumb.classList.remove("border-transparent");
-            thumb.classList.add("border-[#12283F]");
+    let currentGalleryIndex = 0;
+    let galleryTimer = null;
+
+    function showGalleryImage(index) {
+        const thumb = galleryThumbs[index];
+        if (!thumb) {
+            return;
+        }
+
+        const fullSrc = thumb.getAttribute("data-full-src");
+        if (fullSrc) {
+            galleryMain.src = fullSrc;
+        }
+
+        galleryThumbs.forEach((t) => {
+            t.classList.remove("border-[#12283F]");
+            t.classList.add("border-transparent");
+        });
+        thumb.classList.remove("border-transparent");
+        thumb.classList.add("border-[#12283F]");
+
+        currentGalleryIndex = index;
+    }
+
+    function nextGalleryImage() {
+        const nextIndex = (currentGalleryIndex + 1) % galleryThumbs.length;
+        showGalleryImage(nextIndex);
+    }
+
+    function startGallerySlider() {
+        if (galleryThumbs.length <= 1) {
+            return;
+        }
+
+        galleryTimer = setInterval(() => {
+            nextGalleryImage();
+        }, 5000);
+    }
+
+    function restartGallerySlider() {
+        if (galleryTimer) {
+            clearInterval(galleryTimer);
+        }
+        startGallerySlider();
+    }
+
+    galleryThumbs.forEach((thumb, index) => {
+        thumb.addEventListener("click", () => {
+            // A manual click should also reset the auto-rotation
+            // timer, same behavior as the homepage hero slider dots
+            // -- otherwise the gallery could jump away again just a
+            // moment after someone picked a photo on purpose.
+            showGalleryImage(index);
+            restartGallerySlider();
         });
     });
+
+    startGallerySlider();
 }
