@@ -11,6 +11,14 @@ INPUT_CLASSES = (
 )
 
 
+FILE_INPUT_CLASSES = (
+    "block w-full text-sm text-[#64748B] "
+    "file:mr-4 file:rounded-lg file:border-0 file:bg-[#12283F] "
+    "file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white "
+    "hover:file:bg-[#1B3A5A] file:cursor-pointer cursor-pointer"
+)
+
+
 class RegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
 
@@ -70,6 +78,8 @@ class RealtorApplicationForm(forms.ModelForm):
             ),
             "phone": forms.TextInput(attrs={"class": INPUT_CLASSES}),
             "agency": forms.TextInput(attrs={"class": INPUT_CLASSES}),
+            "photo": forms.ClearableFileInput(attrs={"class": FILE_INPUT_CLASSES})
+
         }
 
 
@@ -115,6 +125,8 @@ class PropertyForm(forms.ModelForm):
             "bathrooms": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
             "area": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
             "address": forms.TextInput(attrs={"class": INPUT_CLASSES}),
+            "address": forms.TextInput(attrs={"class": INPUT_CLASSES}),
+            "image": forms.ClearableFileInput(attrs={"class": FILE_INPUT_CLASSES}),
         }
 
     def __init__(self, *args, **kwargs):
