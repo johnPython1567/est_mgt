@@ -276,3 +276,44 @@ if (inquiryModal) {
         }
     });
 }
+
+const mobileMenuToggle = document.querySelector("[data-mobile-menu-toggle]");
+const mobileMenu = document.querySelector("[data-mobile-menu]");
+
+if (mobileMenuToggle && mobileMenu) {
+    function openMobileMenu() {
+        mobileMenu.hidden = false;
+        mobileMenuToggle.setAttribute("aria-expanded", "true");
+        mobileMenuToggle.textContent = "✕";
+    }
+
+    function closeMobileMenu() {
+        mobileMenu.hidden = true;
+        mobileMenuToggle.setAttribute("aria-expanded", "false");
+        mobileMenuToggle.textContent = "☰";
+    }
+
+    mobileMenuToggle.addEventListener("click", () => {
+        if (mobileMenu.hidden) {
+            openMobileMenu();
+        } else {
+            closeMobileMenu();
+        }
+    });
+
+    // Close automatically if the viewport grows past the mobile
+    // breakpoint (e.g. rotating a tablet, resizing a browser window)
+    // so the panel doesn't stay stuck open behind the desktop nav.
+    const desktopBreakpoint = window.matchMedia("(min-width: 768px)");
+    desktopBreakpoint.addEventListener("change", (event) => {
+        if (event.matches) {
+            closeMobileMenu();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !mobileMenu.hidden) {
+            closeMobileMenu();
+        }
+    });
+}
