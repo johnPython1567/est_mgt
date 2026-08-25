@@ -20,10 +20,11 @@ from .forms import (
     InquiryForm,
     LoginForm,
     PropertyForm,
+    PropertyImageForm,
     RealtorApplicationForm,
     RegistrationForm,
 )
-from .models import Property, Favorite, Inquiry, Realtor, PropertyType
+from .models import Property, Favorite, Inquiry, PropertyImage, Realtor, PropertyType
 
 
 class HomeView(TemplateView):
@@ -625,3 +626,74 @@ def update_inquiry_status(request, pk):
         messages.error(request, "That isn't a valid status.")
 
     return redirect("realtor-inquiries")
+
+
+MAX_GALLERY_IMAGES = 12
+
+
+class PropertyImageManageView(VerifiedRealtorRequiredMixin, TemplateView):
+    template_name = "realtors/property_images.html"
+    login_url = reverse_lazy("login")
+
+    def get_property(self):
+        return get_object_or_404(
+            Property,
+            slug=self.kwargs["slug"],
+            realtor=self.request.user.realtor_profile,
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        property_obj = self.get_property()
+        context["property"] = property_obj
+        context["images"] = property_obj.images.all()
+        context["max_images"] = MAX_GALLERY_IMAGES
+        context["at_limit"] = property_obj.images.count() >= MAX_GALLERY_IMAGES
+
+        context["form"] = kwargs.get("form") or PropertyImageForm()
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        property_obj = self.get_property()
+
+        if property_obj.images.count() >= MAX_GALLERY_IMAGES:
+            messages.error(
+                request,
+                f"You can add up to {MAX_GALLERY_IMAGES} photos per listing.",
+            )
+            return redirect("property-images", slug=property_obj.slug)
+
+        form = PropertyImageForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            gallery_image = form.save(commit=False)
+            gallery_image.property = property_obj
+            gallery_image.save()
+
+            messages.success(request, "Photo added.")
+            return redirect("property-images", slug=property_obj.slug)
+
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+@require_POST
+@login_required
+def delete_property_image(request, slug, image_id):
+    # Ownership check via the query itself: a realtor can only ever
+    # delete a photo on their own listing -- anyone else (or an
+    # unrelated image id) gets a plain 404, same as toggle_favorite
+    # and update_inquiry_status do elsewhere in this file.
+    property_obj = get_object_or_404(
+        Property,
+        slug=slug,
+        realtor__user=request.user,
+    )
+    image = get_object_or_404(
+        PropertyImage, pk=image_id, property=property_obj
+    )
+    image.delete()
+
+    messages.success(request, "Photo removed.")
+    return redirect("property-images", slug=property_obj.slug)

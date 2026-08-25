@@ -22,6 +22,8 @@ urlpatterns = [
     path('realtor/dashboard/', views.RealtorDashboardView.as_view(), name='realtor-dashboard'),
     path('realtor/properties/create/', views.PropertyCreateView.as_view(), name='property-create'),
     path('realtor/properties/<slug:slug>/edit/', views.PropertyUpdateView.as_view(), name='property-edit'),
+    path('realtor/properties/<slug:slug>/images/', views.PropertyImageManageView.as_view(), name='property-images'),
+    path('realtor/properties/<slug:slug>/images/<int:image_id>/delete/', views.delete_property_image, name='delete-property-image'),
     path('realtor/inquiries/', views.RealtorInquiryListView.as_view(), name='realtor-inquiries'),
     path('realtor/inquiries/<int:pk>/status/', views.update_inquiry_status, name='update-inquiry-status'),
 ]

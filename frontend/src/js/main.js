@@ -317,3 +317,25 @@ if (mobileMenuToggle && mobileMenu) {
         }
     });
 }
+
+
+const galleryMain = document.querySelector("[data-gallery-main]");
+const galleryThumbs = document.querySelectorAll("[data-gallery-thumb]");
+
+if (galleryMain && galleryThumbs.length) {
+    galleryThumbs.forEach((thumb) => {
+        thumb.addEventListener("click", () => {
+            const fullSrc = thumb.getAttribute("data-full-src");
+            if (fullSrc) {
+                galleryMain.src = fullSrc;
+            }
+
+            galleryThumbs.forEach((t) => {
+                t.classList.remove("border-[#12283F]");
+                t.classList.add("border-transparent");
+            });
+            thumb.classList.remove("border-transparent");
+            thumb.classList.add("border-[#12283F]");
+        });
+    });
+}

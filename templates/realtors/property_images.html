@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | Manage photos{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<section class="min-h-[60vh] bg-[#F8FAFC] px-6 py-16">
+    <div class="mx-auto max-w-3xl">
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">Realtor dashboard</p>
+                <h1 class="mt-3 text-3xl font-bold text-[#12283F]">Manage photos</h1>
+                <p class="mt-1 text-[#64748B]">{{ property.title }}</p>
+            </div>
+
+            
+                <a href="{% url 'realtor-dashboard' %}"
+                class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+            >
+                ← Back to listings
+            </a>
+        </div>
+
+        <div class="mt-8 rounded-2xl border border-[#E2E8F0] bg-white p-6">
+
+            <h2 class="text-lg font-bold text-[#12283F]">
+                Gallery photos ({{ images|length }}/{{ max_images }})
+            </h2>
+
+            {% if images %}
+                <div class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {% for photo in images %}
+                        <div class="relative group">
+                            <img
+                                src="{{ photo.image.url }}"
+                                alt="{{ photo.caption|default:property.title }}"
+                                class="w-full h-32 object-cover rounded-lg border border-[#E2E8F0]"
+                            >
+
+                            <form
+                                method="post"
+                                action="{% url 'delete-property-image' property.slug photo.pk %}"
+                                class="absolute top-2 right-2"
+                            >
+                                {% csrf_token %}
+                                <button
+                                    type="submit"
+                                    aria-label="Delete this photo"
+                                    class="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#DC2626] shadow transition hover:bg-white"
+                                >
+                                    &times;
+                                </button>
+                            </form>
+
+                            {% if photo.caption %}
+                                <p class="mt-1 text-xs text-[#64748B] truncate">{{ photo.caption }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="mt-3 text-sm text-[#64748B]">No gallery photos yet — just the main listing photo.</p>
+            {% endif %}
+
+        </div>
+
+        <div class="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-6">
+
+            <h2 class="text-lg font-bold text-[#12283F]">Add a photo</h2>
+
+            {% if at_limit %}
+                <p class="mt-3 text-sm text-[#64748B]">
+                    You've reached the {{ max_images }}-photo limit for this listing. Remove one above to add another.
+                </p>
+            {% else %}
+                <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4">
+                    {% csrf_token %}
+
+                    <div>
+                        <label for="id_image" class="block text-sm font-semibold text-[#12283F] mb-2">
+                            Photo
+                        </label>
+                        {{ form.image }}
+                    </div>
+
+                    <div>
+                        <label for="id_caption" class="block text-sm font-semibold text-[#12283F] mb-2">
+                            Caption (optional)
+                        </label>
+                        {{ form.caption }}
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="rounded-lg bg-[#12283F] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
+                    >
+                        Add photo
+                    </button>
+                </form>
+            {% endif %}
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

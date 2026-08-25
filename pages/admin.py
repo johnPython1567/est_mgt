@@ -3,11 +3,16 @@ from django.utils import timezone
 
 # Register your models here.
 
-from .models import Inquiry, Location, Property, PropertyType, Realtor
+from .models import Inquiry, Location, Property, PropertyImage, PropertyType, Realtor
+
+class PropertyImageInline(admin.TabularInline):
+    model = PropertyImage
+    extra = 1
 
 
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
+    inlines = [PropertyImageInline]
     list_display = (
         "title",
         "property_type",

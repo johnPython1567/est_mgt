@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
-from .models import Inquiry, Location, Property, Realtor
+from .models import Inquiry, Location, Property, Realtor, PropertyImage
 
 
 INPUT_CLASSES = (
@@ -160,3 +160,14 @@ class PropertyForm(forms.ModelForm):
             property_obj.save()
 
         return property_obj
+
+class PropertyImageForm(forms.ModelForm):
+    class Meta:
+        model = PropertyImage
+        fields = ["image", "caption"]
+        widgets = {
+            "image": forms.ClearableFileInput(attrs={"class": FILE_INPUT_CLASSES}),
+            "caption": forms.TextInput(
+                attrs={"class": INPUT_CLASSES, "placeholder": "Optional caption"}
+            ),
+        }

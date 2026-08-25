@@ -79,6 +79,7 @@
                         alt="{{ property.title }}"
                         fetchpriority="high"
                         decoding="async"
+                        data-gallery-main
                         class="w-full
                                h-full
                                object-cover"
@@ -99,7 +100,7 @@
                             No image available
                         </p>
 
-                    </div>
+                </div>
 
                 {% endif %}
 
@@ -179,6 +180,38 @@
                 </form>
 
             </div>
+
+            {% if property.images.all %}
+                <!-- =============================================
+                     PHOTO GALLERY
+                ============================================== -->
+
+                <div class="flex gap-3 overflow-x-auto px-6 md:px-10 py-5 border-b border-[#E2E8F0]">
+
+                    {% if property.image %}
+                        <button
+                            type="button"
+                            data-gallery-thumb
+                            data-full-src="{{ property.image.url }}"
+                            class="shrink-0 h-20 w-20 rounded-lg overflow-hidden border-2 border-[#12283F]"
+                        >
+                            <img src="{{ property.image.url }}" alt="{{ property.title }}" class="h-full w-full object-cover">
+                        </button>
+                    {% endif %}
+
+                    {% for photo in property.images.all %}
+                        <button
+                            type="button"
+                            data-gallery-thumb
+                            data-full-src="{{ photo.image.url }}"
+                            class="shrink-0 h-20 w-20 rounded-lg overflow-hidden border-2 border-transparent hover:border-[#C49A5A] transition"
+                        >
+                            <img src="{{ photo.image.url }}" alt="{{ photo.caption|default:property.title }}" class="h-full w-full object-cover">
+                        </button>
+                    {% endfor %}
+
+                </div>
+            {% endif %}
 
             <!-- =================================================
                  PROPERTY INFORMATION

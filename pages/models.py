@@ -243,6 +243,28 @@ class Inquiry(models.Model):
     def __str__(self):
         return f"Inquiry from {self.name} about {self.property.title}"
 
+class PropertyImage(models.Model):
+    """Extra gallery photos for a listing, beyond its single primary
+    Property.image (which stays as the hero/card image, unchanged).
+    A realtor can add several of these per listing."""
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="images",
+    )
+    image = models.ImageField(
+        upload_to="properties/gallery/",
+        validators=[validate_image_file_size],
+    )
+    caption = models.CharField(max_length=150, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Photo for {self.property.title}"
 
 class Realtor(models.Model):
     user = models.OneToOneField(

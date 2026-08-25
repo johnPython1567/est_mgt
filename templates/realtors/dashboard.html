@@ -80,12 +80,21 @@
                                 </p>
                             </div>
 
-                            
-                                <a href="{% url 'property-edit' property.slug %}"
-                                class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
-                            >
-                                Edit
-                            </a>
+                            <div class="flex items-center gap-2">
+                                
+                                    <a href="{% url 'property-images' property.slug %}"
+                                    class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+                                >
+                                    Photos
+                                </a>
+
+                                
+                                   <a href="{% url 'property-edit' property.slug %}"
+                                    class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+                                >
+                                    Edit
+                                </a>
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
