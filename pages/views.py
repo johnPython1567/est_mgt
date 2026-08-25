@@ -471,7 +471,7 @@ class RealtorApplyView(LoginRequiredMixin, TemplateView):
             )
             return redirect("realtor-apply")
 
-        form = RealtorApplicationForm(request.POST)
+        form = RealtorApplicationForm(request.POST, request.FILES)
 
         if form.is_valid():
             realtor = form.save(commit=False)
@@ -504,6 +504,21 @@ class RealtorDashboardView(VerifiedRealtorRequiredMixin, TemplateView):
         ).count()
 
         return context
+
+class RealtorProfileUpdateView(VerifiedRealtorRequiredMixin, UpdateView):
+    model = Realtor
+    form_class = RealtorApplicationForm
+    template_name = "realtors/profile_form.html"
+    login_url = reverse_lazy("login")
+
+    def get_object(self, queryset=None):
+        # A realtor only ever edits their own profile -- there's no
+        # slug/pk in the URL for this one, it's always "you".
+        return self.request.user.realtor_profile
+
+    def get_success_url(self):
+        messages.success(self.request, "Your profile has been updated.")
+        return reverse_lazy("realtor-dashboard")
 
 
 class PropertyCreateView(VerifiedRealtorRequiredMixin, CreateView):

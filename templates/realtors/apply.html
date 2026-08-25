@@ -23,12 +23,33 @@
                 {% endif %}
             </h1>
 
+            <div class="mt-6 flex items-center gap-4">
+                {% if realtor_profile.photo %}
+                    <img
+                        src="{{ realtor_profile.photo.url }}"
+                        alt="{{ realtor_profile.user.username }}"
+                        class="h-16 w-16 rounded-full object-cover border border-[#E2E8F0]"
+                    >
+                {% else %}
+                    <div class="h-16 w-16 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#94A3B8] text-xl font-bold border border-[#E2E8F0]">
+                        {{ realtor_profile.user.username|slice:":1"|upper }}
+                    </div>
+                {% endif %}
+
+                
+                   <a href="{% url 'realtor-profile-edit' %}"
+                    class="text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                >
+                    {% if realtor_profile.photo %}Change photo & edit profile{% else %}Add a profile photo{% endif %}
+                </a>
+            </div>
+
             {% if realtor_profile.is_verified %}
                 <p class="mt-4 text-[#64748B]">
                     Your account has been approved. Head over to your dashboard to manage your listings.
                 </p>
                 
-                    href="{% url 'realtor-dashboard' %}"
+                   <a href="{% url 'realtor-dashboard' %}"
                     class="mt-6 inline-flex items-center rounded-lg bg-[#12283F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
                 >
                     Go to your dashboard
@@ -63,7 +84,7 @@
                 Applications are reviewed by an administrator before approval.
             </p>
 
-            <form method="post" class="mt-8 space-y-5">
+            <form method="post" enctype="multipart/form-data" class="mt-8 space-y-5">
                 {% csrf_token %}
 
                 <div>
@@ -85,6 +106,13 @@
                         Agency (optional)
                     </label>
                     {{ form.agency }}
+                </div>
+
+                <div>
+                    <label for="id_photo" class="block text-sm font-semibold text-[#12283F] mb-2">
+                        Profile photo (optional)
+                    </label>
+                    {{ form.photo }}
                 </div>
 
                 <button

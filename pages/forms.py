@@ -59,7 +59,7 @@ class InquiryForm(forms.ModelForm):
 class RealtorApplicationForm(forms.ModelForm):
     class Meta:
         model = Realtor
-        fields = ["bio", "phone", "agency"]
+        fields = ["bio", "phone", "agency", "photo"]
         widgets = {
             "bio": forms.Textarea(
                 attrs={
