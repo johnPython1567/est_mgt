@@ -24,7 +24,7 @@ from .forms import (
     RealtorApplicationForm,
     RegistrationForm,
 )
-from .models import Property, Favorite, Inquiry, PropertyImage, Realtor, PropertyType
+from .models import Property, Favorite, Inquiry, PropertyImage, Realtor, PropertyType, RecentlyViewed
 
 
 class HomeView(TemplateView):
@@ -257,6 +257,21 @@ class PropertyDetailView(DetailView):
 
         return queryset.filter(is_published=True)
 
+    def get(self, request, *args, **kwargs):
+            response = super().get(request, *args, **kwargs)
+
+            # Record the view only after a successful load -- if the
+            # queryset above already 404'd (unpublished, not the owner),
+            # execution never reaches here, so nothing gets tracked for
+            # a listing the user couldn't actually see.
+            if request.user.is_authenticated:
+                RecentlyViewed.objects.update_or_create(
+                    user=request.user,
+                    property=self.object,
+                )
+
+            return response
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -277,6 +292,7 @@ class PropertyDetailView(DetailView):
             initial["email"] = self.request.user.email
 
         context["inquiry_form"] = InquiryForm(initial=initial)
+
 
         return context
 
@@ -332,6 +348,13 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         context["inquiries"] = (
             Inquiry.objects.filter(user=self.request.user)
             .select_related("property")
+        )
+
+        context["recently_viewed"] = (
+            RecentlyViewed.objects.filter(user=self.request.user)
+            .select_related(
+                "property", "property__property_type", "property__location"
+            )[:10]
         )
 
         return context

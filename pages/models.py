@@ -222,6 +222,40 @@ class Favorite(models.Model):
     def __str__(self):
         return f"{self.user.username} saved {self.property.title}"
 
+class RecentlyViewed(models.Model):
+    """One row per (user, property) pair -- viewing the same property
+    again just bumps viewed_at instead of creating a duplicate, so
+    the profile page always shows a clean, deduplicated history."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recently_viewed",
+    )
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="viewed_by",
+    )
+
+    # auto_now (not auto_now_add) so re-viewing an already-tracked
+    # property updates its timestamp instead of needing separate
+    # create/update logic.
+    viewed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-viewed_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "property"],
+                name="unique_user_property_view",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} viewed {self.property.title}"
+
 
 class Inquiry(models.Model):
     STATUS_CHOICES = [
