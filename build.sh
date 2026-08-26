@@ -27,5 +27,10 @@ cd ..
 python manage.py collectstatic --no-input
 
 python manage.py migrate
+python manage.py migrate
 
+python manage.py shell -c "
+from pages.models import Realtor
+for r in Realtor.objects.filter(slug__isnull=True): r.save()
+"
 python manage.py createsuperuser --noinput || true
