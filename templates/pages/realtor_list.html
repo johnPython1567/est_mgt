@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | Our Realtors{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<main class="bg-[#F8FAFC] min-h-screen">
+
+    <section class="bg-white border-b border-[#E2E8F0]">
+        <div class="max-w-7xl mx-auto px-6 py-16">
+            <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">EST-MGT</p>
+            <h1 class="mt-3 text-4xl md:text-5xl font-bold tracking-tight text-[#12283F]">Our Realtors</h1>
+            <p class="mt-4 text-base md:text-lg text-[#64748B] max-w-2xl">
+                Meet the verified professionals helping people find their next home or investment.
+            </p>
+        </div>
+    </section>
+
+    <section class="max-w-7xl mx-auto px-6 py-16">
+
+        {% if realtors %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for realtor in realtors %}
+                    
+                        <a href="{{ realtor.get_absolute_url }}"
+                        class="block bg-white rounded-2xl border border-[#E2E8F0] p-6 text-center transition hover:shadow-xl hover:-translate-y-1"
+                    >
+                        {% if realtor.photo %}
+                            <img
+                                src="{{ realtor.photo.url }}"
+                                alt="{{ realtor.user.username }}"
+                                class="h-24 w-24 mx-auto rounded-full object-cover border border-[#E2E8F0]"
+                            >
+                        {% else %}
+                            <div class="h-24 w-24 mx-auto rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#94A3B8] text-3xl font-bold border border-[#E2E8F0]">
+                                {{ realtor.user.username|slice:":1"|upper }}
+                            </div>
+                        {% endif %}
+
+                        <h2 class="mt-4 font-bold text-[#12283F]">
+                            {{ realtor.agency|default:realtor.user.username }}
+                        </h2>
+
+                        {% if realtor.agency %}
+                            <p class="text-sm text-[#64748B]">{{ realtor.user.username }}</p>
+                        {% endif %}
+
+                        {% if realtor.bio %}
+                            <p class="mt-2 text-sm text-[#64748B] line-clamp-2">{{ realtor.bio }}</p>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+
+            {% if is_paginated %}
+                <nav aria-label="Realtor pagination" class="flex items-center justify-center gap-2 mt-14">
+                    {% if page_obj.has_previous %}
+                        
+                            <a href="?page={{ page_obj.previous_page_number }}"
+                            class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+                        >
+                            Previous
+                        </a>
+                    {% endif %}
+
+                    <span class="px-4 py-2 text-sm font-medium text-[#64748B]">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        
+                            <a href="?page={{ page_obj.next_page_number }}"
+                            class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
+                        >
+                            Next
+                        </a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+
+        {% else %}
+            <div class="bg-white rounded-2xl border border-[#E2E8F0] px-6 py-20 text-center">
+                <h2 class="text-xl font-bold text-[#12283F]">
+                    No realtors yet
+
+                </h2>
+                <p class="text-[#64748B] mt-2">Check back soon.</p>
+            </div>
+        {% endif %}
+
+    </section>
+
+</main>
+{% endblock %}

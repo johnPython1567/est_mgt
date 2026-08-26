@@ -438,7 +438,78 @@
                     </div>
 
                 </div>
+                
+                                {% if property.amenities %}
+                    <!-- =============================================
+                         AMENITIES
+                    ============================================== -->
 
+                    <div class="mt-10">
+
+                        <h2 class="text-2xl md:text-3xl font-bold text-[#12283F]">
+                            Amenities
+                        </h2>
+
+                        <ul class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 max-w-4xl">
+                            {% for amenity in property.amenities.splitlines %}
+                                {% if amenity %}
+                                    <li class="flex items-center gap-2 text-[#64748B]">
+                                        <span class="text-[#C49A5A]">✓</span>
+                                        {{ amenity }}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+
+                    </div>
+                {% endif %}
+
+
+                {% if property.realtor %}
+                    <!-- =============================================
+                         LISTED BY
+                    ============================================== -->
+
+                    <div class="mt-10 pt-10 border-t border-[#E2E8F0]">
+
+                        <h2 class="text-2xl md:text-3xl font-bold text-[#12283F]">
+                            Listed by
+                        </h2>
+
+                        <div class="mt-5 flex items-center gap-4">
+                            {% if property.realtor.photo %}
+                                <img
+                                    src="{{ property.realtor.photo.url }}"
+                                    alt="{{ property.realtor.user.username }}"
+                                    class="h-16 w-16 rounded-full object-cover border border-[#E2E8F0]"
+                                >
+                            {% else %}
+                                <div class="h-16 w-16 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#94A3B8] text-xl font-bold border border-[#E2E8F0]">
+                                    {{ property.realtor.user.username|slice:":1"|upper }}
+                                </div>
+                            {% endif %}
+
+                            <div>
+                                
+                                    <a href="{{ property.realtor.get_absolute_url }}"
+                                    class="font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                                >
+                                    {{ property.realtor.agency|default:property.realtor.user.username }}
+                                </a>
+                                {% if property.realtor.phone %}
+                                    <p class="text-sm text-[#64748B] mt-0.5">{{ property.realtor.phone }}</p>
+                                {% endif %}
+                                
+                                    <a href="{{ property.realtor.get_absolute_url }}"
+                                    class="text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                                >
+                                    View profile & other listings →
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+                {% endif %}
 
 
                 <!-- =================================================

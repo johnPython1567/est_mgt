@@ -699,3 +699,50 @@ def delete_property_image(request, slug, image_id):
 
     messages.success(request, "Photo removed.")
     return redirect("property-images", slug=property_obj.slug)
+
+
+class RealtorListView(ListView):
+    model = Realtor
+    template_name = "pages/realtor_list.html"
+    context_object_name = "realtors"
+    paginate_by = 12
+
+    def get_queryset(self):
+        # Only verified realtors get a public profile -- a pending
+        # application isn't something the public should see or be
+        # able to browse to.
+        return Realtor.objects.filter(
+            is_verified=True
+        ).select_related("user")
+
+
+class RealtorPublicDetailView(DetailView):
+    model = Realtor
+    template_name = "pages/realtor_detail.html"
+    context_object_name = "realtor"
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+
+    def get_queryset(self):
+        return Realtor.objects.filter(
+            is_verified=True
+        ).select_related("user")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["properties"] = Property.objects.filter(
+            realtor=self.object, is_published=True
+        ).select_related("property_type", "location").prefetch_related(
+            "images"
+        )
+
+        return context
+
+
+class AboutView(TemplateView):
+    template_name = "pages/about.html"
+
+
+class ContactView(TemplateView):
+    template_name = "pages/contact.html"

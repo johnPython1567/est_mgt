@@ -103,6 +103,7 @@ class PropertyForm(forms.ModelForm):
         fields = [
             "title",
             "description",
+            "amenities",
             "property_type",
             "listing_type",
             "price",
@@ -118,6 +119,15 @@ class PropertyForm(forms.ModelForm):
             "description": forms.Textarea(
                 attrs={"class": INPUT_CLASSES, "rows": 5}
             ),
+
+            "amenities": forms.Textarea(
+                attrs={
+                    "class": INPUT_CLASSES,
+                    "rows": 4,
+                    "placeholder": "One per line, e.g.\nSwimming pool\n24/7 security\nGym",
+                }
+            ),
+
             "property_type": forms.Select(attrs={"class": INPUT_CLASSES}),
             "listing_type": forms.Select(attrs={"class": INPUT_CLASSES}),
             "price": forms.NumberInput(attrs={"class": INPUT_CLASSES}),

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | {{ realtor.agency|default:realtor.user.username }}{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<main class="bg-[#F8FAFC] min-h-screen">
+
+    <section class="bg-white border-b border-[#E2E8F0]">
+        <div class="max-w-7xl mx-auto px-6 py-16">
+
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+
+                {% if realtor.photo %}
+                    <img
+                        src="{{ realtor.photo.url }}"
+                        alt="{{ realtor.user.username }}"
+                        class="h-28 w-28 rounded-full object-cover border border-[#E2E8F0]"
+                    >
+                {% else %}
+                    <div class="h-28 w-28 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#94A3B8] text-4xl font-bold border border-[#E2E8F0]">
+                        {{ realtor.user.username|slice:":1"|upper }}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">Realtor</p>
+                    <h1 class="mt-2 text-3xl md:text-4xl font-bold text-[#12283F]">
+                        {{ realtor.agency|default:realtor.user.username }}
+                    </h1>
+
+                    {% if realtor.agency %}
+                        <p class="mt-1 text-[#64748B]">{{ realtor.user.username }}</p>
+                    {% endif %}
+
+                    {% if realtor.phone %}
+                        <p class="mt-3 text-[#12283F] font-semibold">{{ realtor.phone }}</p>
+                    {% endif %}
+
+                    {% if realtor.bio %}
+                        <p class="mt-4 text-[#64748B] max-w-2xl">{{ realtor.bio }}</p>
+                    {% endif %}
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <section class="max-w-7xl mx-auto px-6 py-16">
+
+        <h2 class="text-2xl font-bold text-[#12283F]">
+            Listings by {{ realtor.agency|default:realtor.user.username }}
+        </h2>
+
+        {% if properties %}
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for property in properties %}
+                    <article class="group bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] transition hover:shadow-xl hover:-translate-y-1">
+
+                        <div class="relative h-56 overflow-hidden">
+                            {% if property.display_image %}
+                                <img
+                                    src="{{ property.display_image.url }}"
+                                    alt="{{ property.title }}"
+                                    loading="lazy"
+                                    class="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                                >
+                            {% else %}
+                                <div class="w-full h-full bg-[#F1F5F9] flex items-center justify-center">
+                                    <p class="text-[#94A3B8]">No image available</p>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="p-5">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-[#C49A5A]">
+                                {{ property.property_type.name }}
+                            </p>
+                            <h3 class="mt-1 font-bold text-[#12283F]">{{ property.title }}</h3>
+                            <p class="mt-1 text-sm text-[#64748B]">
+                                {{ property.location.city }}, {{ property.location.state }}
+                            </p>
+                            <p class="mt-3 text-lg font-bold text-[#12283F]">₦{{ property.price }}</p>
+
+                            
+                                <a href="{{ property.get_absolute_url }}"
+                                class="mt-4 inline-flex items-center text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                            >
+                                View Property <span class="ml-2">→</span>
+                            </a>
+                        </div>
+
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="mt-4 text-[#64748B]">No published listings yet.</p>
+        {% endif %}
+
+    </section>
+
+</main>
+{% endblock %}

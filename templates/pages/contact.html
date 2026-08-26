@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | Contact{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<main class="bg-[#F8FAFC] min-h-screen">
+
+    <section class="bg-white border-b border-[#E2E8F0]">
+        <div class="max-w-4xl mx-auto px-6 py-16">
+            <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">Get in Touch</p>
+            <h1 class="mt-3 text-4xl md:text-5xl font-bold tracking-tight text-[#12283F]">Contact Us</h1>
+            <p class="mt-4 text-base md:text-lg text-[#64748B] max-w-2xl">
+                Have a question about a listing, your account, or becoming a realtor on EST-MGT?
+                Reach out to us directly.
+            </p>
+        </div>
+    </section>
+
+    <section class="max-w-4xl mx-auto px-6 py-16">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+
+            <div class="bg-white rounded-2xl border border-[#E2E8F0] p-6">
+                <p class="text-xs text-[#94A3B8] uppercase font-semibold">Location</p>
+                <p class="mt-2 text-[#12283F] font-semibold">Lagos, Nigeria</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-[#E2E8F0] p-6">
+                <p class="text-xs text-[#94A3B8] uppercase font-semibold">Email</p>
+                <p class="mt-2 text-[#12283F] font-semibold">info@est-mgt.com</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-[#E2E8F0] p-6">
+                <p class="text-xs text-[#94A3B8] uppercase font-semibold">Phone</p>
+                <p class="mt-2 text-[#12283F] font-semibold">+234 800 000 0000</p>
+            </div>
+
+        </div>
+
+        <p class="mt-10 text-[#64748B]">
+            For questions about a specific property, use the "Contact About Property" button on
+            that listing's page to reach the realtor directly.
+        </p>
+
+    </section>
+
+</main>
+{% endblock %}

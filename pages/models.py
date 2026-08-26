@@ -81,6 +81,10 @@ class Property(models.Model):
         slug = models.SlugField(unique=True)
 
         description = models.TextField()
+        amenities = models.TextField(
+            blank=True,
+            help_text="One amenity per line, e.g. Swimming pool, 24/7 security, Gym",
+        )
 
         property_type = models.ForeignKey(
             PropertyType,
@@ -290,6 +294,7 @@ class PropertyImage(models.Model):
 
     def __str__(self):
         return f"Photo for {self.property.title}"
+    
 
 class Realtor(models.Model):
     user = models.OneToOneField(
@@ -297,6 +302,11 @@ class Realtor(models.Model):
         on_delete=models.CASCADE,
         related_name="realtor_profile",
     )
+
+    # Public profile URL (/realtors/<slug>/). Nullable at the DB
+    # level so it's a safe additive migration for existing rows;
+    # save() below always fills it in going forward.
+    slug = models.SlugField(unique=True, null=True, blank=True)
 
     bio = models.TextField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
@@ -318,3 +328,24 @@ class Realtor(models.Model):
     def __str__(self):
         status = "Verified" if self.is_verified else "Pending"
         return f"{self.user.username} ({status})"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.user.username) or "realtor"
+            slug = base_slug
+            counter = 1
+            while (
+                Realtor.objects.filter(slug=slug)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
+                counter += 1
+                slug = f"{base_slug}-{counter}"
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("realtor-detail", args=[self.slug])
+
+    class Meta:
+        ordering = ["user__username"]

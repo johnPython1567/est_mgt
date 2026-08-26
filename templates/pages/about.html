@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | About{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<main class="bg-[#F8FAFC] min-h-screen">
+
+    <section class="bg-white border-b border-[#E2E8F0]">
+        <div class="max-w-4xl mx-auto px-6 py-16">
+            <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">About Us</p>
+            <h1 class="mt-3 text-4xl md:text-5xl font-bold tracking-tight text-[#12283F]">About EST-MGT</h1>
+        </div>
+    </section>
+
+    <section class="max-w-4xl mx-auto px-6 py-16 space-y-6 text-[#64748B] leading-relaxed">
+
+        <p>
+            EST-MGT is a real estate marketplace built to make property discovery and management
+            simple for everyone involved — visitors browsing for their next home, buyers and renters
+            tracking properties they love, realtors managing their listings, and administrators
+            keeping the platform trustworthy.
+        </p>
+
+        <p>
+            We centralize property listings across locations and property types, so you can search,
+            filter, and compare properties for sale or rent all in one place. Verified realtors manage
+            their own listings directly, respond to inquiries, and build a public profile buyers can
+            trust.
+        </p>
+
+        <p>
+            Whether you're looking to buy, rent, or list a property, EST-MGT is built to make the
+            process straightforward and transparent.
+        </p>
+
+    </section>
+
+</main>
+{% endblock %}
