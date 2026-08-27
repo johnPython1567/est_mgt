@@ -59,6 +59,17 @@ class Location(models.Model):
     country = models.CharField(max_length=100, default="Nigeria")
     slug = models.SlugField(unique=True, blank=True)
 
+    # Nullable: geocoding happens automatically (see save() below)
+    # but is best-effort -- a network hiccup or an address Nominatim
+    # can't resolve should never block saving a Location or the
+    # property listing that depends on it.
+    latitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )
+    longitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True
+    )
+
     class Meta:
         ordering = ["state", "city", "name"]
 
@@ -68,8 +79,25 @@ class Location(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+
+        needs_geocoding = self.latitude is None or self.longitude is None
+
         super().save(*args, **kwargs)
 
+        if needs_geocoding:
+            from .geocoding import geocode_address
+
+            coords = geocode_address(
+                f"{self.city}, {self.state}, {self.country}"
+            )
+            if coords:
+                # .update() rather than calling save() again, so this
+                # doesn't recurse back into geocoding and doesn't
+                # re-trigger auto_now/signal handlers unnecessarily.
+                Location.objects.filter(pk=self.pk).update(
+                    latitude=coords[0], longitude=coords[1]
+                )
+                self.latitude, self.longitude = coords
 
 class Property(models.Model):
         LISTING_TYPES = [
@@ -193,6 +221,36 @@ class Property(models.Model):
             seed = f"{date.today().isoformat()}-{self.pk}"
             rng = random.Random(seed)
             return rng.choice(pool)
+
+        @property
+        def map_coordinates(self):
+            """(latitude, longitude) for plotting this listing on the
+            map view, or None if its Location hasn't been geocoded
+            (e.g. geocoding failed, or hasn't run yet).
+
+            Multiple properties in the same Location share one set
+            of coordinates -- a small, deterministic per-property
+            offset (seeded by this property's own id, so it's stable
+            across requests) keeps listings in the same area visually
+            distinguishable instead of stacking on one exact pin."""
+            if (
+                not self.location
+                or self.location.latitude is None
+                or self.location.longitude is None
+            ):
+                return None
+
+            rng = random.Random(self.pk)
+            # Roughly +/- 0.005 degrees (~500m at the equator) --
+            # enough to separate pins without moving them out of the
+            # actual neighbourhood.
+            offset_lat = (rng.random() - 0.5) * 0.01
+            offset_lng = (rng.random() - 0.5) * 0.01
+
+            return (
+                float(self.location.latitude) + offset_lat,
+                float(self.location.longitude) + offset_lng,
+            )
 
 
 class Favorite(models.Model):

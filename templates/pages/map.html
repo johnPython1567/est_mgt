@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | Property Map{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block css_files %}
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+    >
+{% endblock %}
+
+{% block content %}
+<main class="bg-[#F8FAFC] min-h-screen">
+
+    <section class="bg-white border-b border-[#E2E8F0]">
+        <div class="max-w-7xl mx-auto px-6 py-16">
+            <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">EST-MGT</p>
+            <h1 class="mt-3 text-4xl font-bold tracking-tight text-[#12283F]">Property Map</h1>
+            <p class="mt-2 text-[#64748B]">
+                Browse {{ properties|length }} propert{{ properties|length|pluralize:"y,ies" }} by location.
+            </p>
+        </div>
+    </section>
+
+    <section class="max-w-7xl mx-auto px-6 py-10">
+
+        {% if properties %}
+            <div
+                id="property-map"
+                class="w-full h-[600px] rounded-2xl border border-[#E2E8F0] overflow-hidden"
+            ></div>
+        {% else %}
+            <div class="bg-white rounded-2xl border border-[#E2E8F0] px-6 py-20 text-center">
+                <h2 class="text-xl font-bold text-[#12283F]">No mapped properties yet</h2>
+                <p class="text-[#64748B] mt-2">
+                    Properties appear here once their location has been mapped.
+                </p>
+            </div>
+        {% endif %}
+
+    </section>
+
+</main>
+
+{% if properties %}
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""
+    ></script>
+
+    <script>
+        const propertyMarkers = [
+            {% for property in properties %}
+                {% with coords=property.map_coordinates %}
+                    {% if coords %}
+                        {
+                            lat: {{ coords.0 }},
+                            lng: {{ coords.1 }},
+                            title: "{{ property.title|escapejs }}",
+                            price: "₦{{ property.price }}",
+                            url: "{{ property.get_absolute_url }}",
+                        },
+                    {% endif %}
+                {% endwith %}
+            {% endfor %}
+        ];
+
+        const map = L.map('property-map').setView([9.0820, 8.6753], 6);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+        }).addTo(map);
+
+        if (propertyMarkers.length) {
+            const bounds = [];
+
+            propertyMarkers.forEach((property) => {
+                const marker = L.marker([property.lat, property.lng]).addTo(map);
+                marker.bindPopup(
+                    `<strong>${property.title}</strong><br>${property.price}<br><a href="${property.url}">View property</a>`
+                );
+                bounds.push([property.lat, property.lng]);
+            });
+
+            map.fitBounds(bounds, { padding: [40, 40] });
+        }
+    </script>
+{% endif %}
+
+{% endblock %}

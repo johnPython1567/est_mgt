@@ -5,6 +5,28 @@ from django.urls import reverse
 
 from .models import Favorite, Inquiry, Location, Property, PropertyType, Realtor
 
+from unittest import mock
+
+# Location.save() attempts real geocoding via Nominatim whenever
+# latitude/longitude are unset. Every test that creates a Location
+# would otherwise make a real (and here, failing) network call --
+# slow and fragile, and not something a test suite should depend on.
+# Patch it globally with a fixed, harmless coordinate; individual
+# tests that need to exercise real geocoding behavior (success,
+# failure, "already geocoded" skip) override this locally with their
+# own nested mock.patch.
+_geocode_patcher = mock.patch(
+    "pages.geocoding.geocode_address", return_value=(6.5244, 3.3792)
+)
+
+
+def setUpModule():
+    _geocode_patcher.start()
+
+
+def tearDownModule():
+    _geocode_patcher.stop()
+
 
 def make_property_type(name="Apartment"):
     obj, _ = PropertyType.objects.get_or_create(name=name)

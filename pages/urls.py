@@ -24,6 +24,7 @@ urlpatterns = [
     path('compare/', views.CompareView.as_view(), name='property-compare'),
     path('compare/clear/', views.clear_compare, name='clear-compare'),
     path('properties/<slug:slug>/compare/', views.toggle_compare, name='toggle-compare'),
+    path('map/', views.PropertyMapView.as_view(), name='property-map'),
     path('realtor/apply/', views.RealtorApplyView.as_view(), name='realtor-apply'),
     path('realtor/profile/edit/', views.RealtorProfileUpdateView.as_view(), name='realtor-profile-edit'),
     path('realtor/dashboard/', views.RealtorDashboardView.as_view(), name='realtor-dashboard'),

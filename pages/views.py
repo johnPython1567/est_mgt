@@ -870,3 +870,18 @@ class AboutView(TemplateView):
 
 class ContactView(TemplateView):
     template_name = "pages/contact.html"
+
+
+class PropertyMapView(TemplateView):
+    template_name = "pages/map.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["properties"] = Property.objects.filter(
+            is_published=True,
+            location__latitude__isnull=False,
+            location__longitude__isnull=False,
+        ).select_related("property_type", "location")
+
+        return context
