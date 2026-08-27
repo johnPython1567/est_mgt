@@ -49,8 +49,7 @@
 
                     <!-- Logo -->
 
-                    
-                        <a href="{% url 'home' %}"
+                    <a href="{% url 'home' %}"
                         class="text-2xl font-bold tracking-tight text-[#12283F]
                                hover:text-[#1B3A5A] transition"
                     >
@@ -62,13 +61,13 @@
 
                     <div class="hidden md:flex items-center gap-8">
 
-                        
-                            <a href="{% url 'home' %}"
+                        <a href="{% url 'home' %}"
                             class="text-sm font-semibold text-[#12283F]
                                    hover:text-[#1B3A5A] transition"
                         >
                             Home
                         </a>
+
 
                         <a href="{% url 'property-list' %}"
                             class="text-sm font-semibold text-[#64748B]
@@ -78,8 +77,7 @@
                         </a>
 
 
-                        
-                            <a href="{% url 'realtor-list' %}"
+                        <a href="{% url 'realtor-list' %}"
                             class="text-sm font-semibold text-[#64748B]
                                    hover:text-[#12283F] transition"
                         >
@@ -87,8 +85,7 @@
                         </a>
 
 
-                        
-                            <a href="{% url 'about' %}"
+                        <a href="{% url 'about' %}"
                             class="text-sm font-semibold text-[#64748B]
                                    hover:text-[#12283F] transition"
                         >
@@ -96,8 +93,7 @@
                         </a>
 
 
-                        
-                            <a href="{% url 'contact' %}"
+                        <a href="{% url 'contact' %}"
                             class="text-sm font-semibold text-[#64748B]
                                    hover:text-[#12283F] transition"
                         >
@@ -111,26 +107,34 @@
 
                     <div class="hidden md:flex items-center gap-4">
 
+                        {% if compare_count %}
+                            <a href="{% url 'property-compare' %}"
+                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                            >
+                                Compare
+                                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#C49A5A] text-xs font-bold text-white">
+                                    {{ compare_count }}
+                                </span>
+                            </a>
+                        {% endif %}
+
                         {% if request.user.is_authenticated %}
 
                             {% if request.user.realtor_profile.is_verified %}
-                                
-                                    <a href="{% url 'realtor-dashboard' %}"
+                                <a href="{% url 'realtor-dashboard' %}"
                                     class="text-sm font-semibold text-[#64748B] hover:text-[#12283F] transition"
                                 >
                                     Realtor dashboard
                                 </a>
                             {% elif not request.user.realtor_profile %}
-                                
-                                    <a href="{% url 'realtor-apply' %}"
+                                <a href="{% url 'realtor-apply' %}"
                                     class="text-sm font-semibold text-[#64748B] hover:text-[#12283F] transition"
                                 >
                                     Become a realtor
                                 </a>
                             {% endif %}
 
-                            
-                                <a href="{% url 'profile' %}"
+                            <a href="{% url 'profile' %}"
                                 class="text-sm font-semibold text-[#12283F] hover:text-[#1B3A5A] transition"
                             >
                                 Hi, {{ request.user.username }}
@@ -147,14 +151,14 @@
                             </form>
 
                         {% else %}
-                                <a href="{% url 'login' %}"
+
+                            <a href="{% url 'login' %}"
                                 class="text-sm font-semibold text-[#12283F] hover:text-[#1B3A5A] transition"
                             >
                                 Sign in
                             </a>
 
-                            
-                                <a href="{% url 'register' %}"
+                            <a href="{% url 'register' %}"
                                 class="inline-flex items-center rounded-lg bg-[#12283F] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
                             >
                                 Create account
@@ -198,62 +202,67 @@
             >
 
                 <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-1">
-                        <a href="{% url 'home' %}"
+
+                    <a href="{% url 'home' %}"
                         class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#12283F] hover:bg-[#F1F5F9] transition"
                     >
                         Home
                     </a>
 
-                    
-                        <a href="{% url 'property-list' %}"
+                    <a href="{% url 'property-list' %}"
                         class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#12283F] transition"
                     >
                         Properties
                     </a>
 
-                    
-                        <a href="{% url 'realtor-list' %}"
+                    <a href="{% url 'realtor-list' %}"
                         class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#12283F] transition"
                     >
                         Realtors
                     </a>
 
-                    
-                        <a href="{% url 'about' %}"
+                    <a href="{% url 'about' %}"
                         class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#12283F] transition"
                     >
                         About
                     </a>
 
-                    
-                        <a href="{% url 'contact' %}"
+                    <a href="{% url 'contact' %}"
                         class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#12283F] transition"
                     >
                         Contact
                     </a>
+
+                    {% if compare_count %}
+                        <a href="{% url 'property-compare' %}"
+                            class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#12283F] hover:bg-[#F1F5F9] transition"
+                        >
+                            Compare
+                            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#C49A5A] text-xs font-bold text-white">
+                                {{ compare_count }}
+                            </span>
+                        </a>
+                    {% endif %}
 
                     <div class="my-2 border-t border-[#E2E8F0]"></div>
 
                     {% if request.user.is_authenticated %}
 
                         {% if request.user.realtor_profile.is_verified %}
-                            
-                                <a href="{% url 'realtor-dashboard' %}"
+                            <a href="{% url 'realtor-dashboard' %}"
                                 class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#12283F] transition"
                             >
                                 Realtor dashboard
                             </a>
                         {% elif not request.user.realtor_profile %}
-                            
-                                <a href="{% url 'realtor-apply' %}"
+                            <a href="{% url 'realtor-apply' %}"
                                 class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#12283F] transition"
                             >
                                 Become a realtor
                             </a>
                         {% endif %}
 
-                        
-                            <a href="{% url 'profile' %}"
+                        <a href="{% url 'profile' %}"
                             class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#12283F] hover:bg-[#F1F5F9] transition"
                         >
                             Hi, {{ request.user.username }}
@@ -271,15 +280,13 @@
 
                     {% else %}
 
-                        
-                            <a href="{% url 'login' %}"
+                        <a href="{% url 'login' %}"
                             class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#12283F] hover:bg-[#F1F5F9] transition"
                         >
                             Sign in
                         </a>
 
-                        
-                            <a href="{% url 'register' %}"
+                        <a href="{% url 'register' %}"
                             class="mx-3 mt-2 inline-flex items-center justify-center rounded-lg bg-[#12283F] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
                         >
                             Create account
@@ -382,7 +389,8 @@
                     <ul class="mt-5 space-y-3">
 
                         <li>
-                                <a href="{% url 'home' %}"
+
+                            <a href="{% url 'home' %}"
                                 class="text-gray-300
                                        hover:text-white
                                        transition"
@@ -394,7 +402,8 @@
 
 
                         <li>
-                                <a href="{% url 'property-list' %}"
+
+                            <a href="{% url 'property-list' %}"
                                 class="text-gray-300
                                        hover:text-white
                                        transition"
@@ -407,8 +416,7 @@
 
                         <li>
 
-                            
-                                <a href="{% url 'realtor-list' %}"
+                            <a href="{% url 'realtor-list' %}"
                                 class="text-gray-300
                                        hover:text-white
                                        transition"
@@ -421,8 +429,7 @@
 
                         <li>
 
-                            
-                                <a href="{% url 'about' %}"
+                            <a href="{% url 'about' %}"
                                 class="text-gray-300
                                        hover:text-white
                                        transition"
@@ -434,7 +441,8 @@
 
 
                         <li>
-                                <a href="{% url 'contact' %}"
+
+                            <a href="{% url 'contact' %}"
                                 class="text-gray-300
                                        hover:text-white
                                        transition"

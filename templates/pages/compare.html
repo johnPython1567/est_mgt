@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load vite %}
+
+{% block page_title %}EST-MGT | Compare Properties{% endblock %}
+
+{% block vite_link %}
+    <link rel="stylesheet" href="{% vite_css %}">
+{% endblock %}
+
+{% block content %}
+<main class="bg-[#F8FAFC] min-h-screen">
+
+    <section class="bg-white border-b border-[#E2E8F0]">
+        <div class="max-w-7xl mx-auto px-6 py-16">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.15em] text-[#C49A5A]">EST-MGT</p>
+                    <h1 class="mt-3 text-4xl font-bold tracking-tight text-[#12283F]">Compare Properties</h1>
+                    <p class="mt-2 text-[#64748B]">
+                        Comparing {{ properties|length }} of {{ max_compare }} possible properties.
+                    </p>
+                </div>
+
+                {% if properties %}
+                    <form method="post" action="{% url 'clear-compare' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'property-compare' %}">
+                        <button
+                            type="submit"
+                            class="rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#64748B] transition hover:border-[#12283F] hover:text-[#12283F]"
+                        >
+                            Clear all
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="max-w-7xl mx-auto px-6 py-16">
+
+        {% if properties %}
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse bg-white rounded-2xl overflow-hidden border border-[#E2E8F0]">
+                    <thead>
+                        <tr>
+                            <th class="p-4 text-left text-sm font-semibold text-[#64748B] bg-[#F8FAFC] w-40"></th>
+                            {% for property in properties %}
+                                <th class="p-4 text-left border-l border-[#E2E8F0] min-w-[220px]">
+                                    <div class="relative h-32 rounded-lg overflow-hidden mb-3">
+                                        {% if property.display_image %}
+                                            <img src="{{ property.display_image.url }}" alt="{{ property.title }}" class="w-full h-full object-cover">
+                                        {% else %}
+                                            <div class="w-full h-full bg-[#F1F5F9] flex items-center justify-center text-[#94A3B8] text-xs">No image</div>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{{ property.get_absolute_url }}" class="font-bold text-[#12283F] hover:text-[#C49A5A] transition">
+                                        {{ property.title }}
+                                    </a>
+
+                                    <form method="post" action="{% url 'toggle-compare' property.slug %}" class="mt-2">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'property-compare' %}">
+                                        <button type="submit" class="text-xs font-semibold text-[#DC2626] hover:underline">
+                                            Remove
+                                        </button>
+                                    </form>
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#E2E8F0]">
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Price</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] font-bold text-[#12283F]">₦{{ property.price }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Listing type</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#172033]">{{ property.get_listing_type_display }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Property type</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#172033]">{{ property.property_type.name }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Location</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#172033]">{{ property.location.city }}, {{ property.location.state }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Bedrooms</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#172033]">{{ property.bedrooms }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Bathrooms</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#172033]">{{ property.bathrooms }}</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Area</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#172033]">{{ property.area }} m²</td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC] align-top">Amenities</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#64748B] text-sm align-top">
+                                    {% if property.amenities %}
+                                        {% for amenity in property.amenities.splitlines %}
+                                            {% if amenity %}<div>✓ {{ amenity }}</div>{% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+
+                        <tr>
+                            <td class="p-4 text-sm font-semibold text-[#64748B] bg-[#F8FAFC]">Listed by</td>
+                            {% for property in properties %}
+                                <td class="p-4 border-l border-[#E2E8F0] text-[#172033]">
+                                    {% if property.realtor %}
+                                        <a href="{{ property.realtor.get_absolute_url }}" class="font-semibold text-[#12283F] hover:text-[#C49A5A]">
+                                            {{ property.realtor.agency|default:property.realtor.user.username }}
+                                        </a>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+        {% else %}
+            <div class="bg-white rounded-2xl border border-[#E2E8F0] px-6 py-20 text-center">
+                <h2 class="text-xl font-bold text-[#12283F]">Nothing to compare yet</h2>
+                <p class="text-[#64748B] mt-2">
+                    Browse properties and click "Compare" on up to {{ max_compare }} listings to see them side by side.
+                </p>
+                
+                    href="{% url 'property-list' %}"
+                    class="mt-6 inline-flex items-center rounded-lg bg-[#12283F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1B3A5A]"
+                >
+                    Browse Properties →
+                </a>
+            </div>
+        {% endif %}
+
+    </section>
+
+</main>
+{% endblock %}

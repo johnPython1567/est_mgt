@@ -24,7 +24,7 @@ from .forms import (
     RealtorApplicationForm,
     RegistrationForm,
 )
-from .models import Property, Favorite, Inquiry, PropertyImage, Realtor, PropertyType, RecentlyViewed
+from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType
 
 
 class HomeView(TemplateView):
@@ -79,6 +79,11 @@ class HomeView(TemplateView):
                     property__in=favorited_ids,
                 ).values_list("property_id", flat=True)
             )
+
+        context["compare_property_ids"] = set(
+            self.request.session.get("compare_property_ids", [])
+        )
+
         return context
 
 class PropertyListView(ListView):
@@ -159,7 +164,7 @@ class PropertyListView(ListView):
     def get_queryset(self):
         queryset = Property.objects.filter(
             is_published=True
-        ).select_related("property_type", "location")
+        ).select_related("property_type", "location").prefetch_related("images")
 
         filters = self.get_filter_values()
         location = filters["location"]
@@ -233,6 +238,10 @@ class PropertyListView(ListView):
                 ).values_list("property_id", flat=True)
             )
 
+        context["compare_property_ids"] = set(
+            self.request.session.get("compare_property_ids", [])
+        )
+
         return context
 
 
@@ -258,19 +267,19 @@ class PropertyDetailView(DetailView):
         return queryset.filter(is_published=True)
 
     def get(self, request, *args, **kwargs):
-            response = super().get(request, *args, **kwargs)
+        response = super().get(request, *args, **kwargs)
 
-            # Record the view only after a successful load -- if the
-            # queryset above already 404'd (unpublished, not the owner),
-            # execution never reaches here, so nothing gets tracked for
-            # a listing the user couldn't actually see.
-            if request.user.is_authenticated:
-                RecentlyViewed.objects.update_or_create(
-                    user=request.user,
-                    property=self.object,
-                )
+        # Record the view only after a successful load -- if the
+        # queryset above already 404'd (unpublished, not the owner),
+        # execution never reaches here, so nothing gets tracked for
+        # a listing the user couldn't actually see.
+        if request.user.is_authenticated:
+            RecentlyViewed.objects.update_or_create(
+                user=request.user,
+                property=self.object,
+            )
 
-            return response
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -292,7 +301,6 @@ class PropertyDetailView(DetailView):
             initial["email"] = self.request.user.email
 
         context["inquiry_form"] = InquiryForm(initial=initial)
-
 
         return context
 
@@ -513,6 +521,22 @@ class RealtorApplyView(LoginRequiredMixin, TemplateView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
+class RealtorProfileUpdateView(VerifiedRealtorRequiredMixin, UpdateView):
+    model = Realtor
+    form_class = RealtorApplicationForm
+    template_name = "realtors/profile_form.html"
+    login_url = reverse_lazy("login")
+
+    def get_object(self, queryset=None):
+        # A realtor only ever edits their own profile -- there's no
+        # slug/pk in the URL for this one, it's always "you".
+        return self.request.user.realtor_profile
+
+    def get_success_url(self):
+        messages.success(self.request, "Your profile has been updated.")
+        return reverse_lazy("realtor-dashboard")
+
+
 class RealtorDashboardView(VerifiedRealtorRequiredMixin, TemplateView):
     template_name = "realtors/dashboard.html"
     login_url = reverse_lazy("login")
@@ -530,21 +554,6 @@ class RealtorDashboardView(VerifiedRealtorRequiredMixin, TemplateView):
         ).count()
 
         return context
-
-class RealtorProfileUpdateView(VerifiedRealtorRequiredMixin, UpdateView):
-    model = Realtor
-    form_class = RealtorApplicationForm
-    template_name = "realtors/profile_form.html"
-    login_url = reverse_lazy("login")
-
-    def get_object(self, queryset=None):
-        # A realtor only ever edits their own profile -- there's no
-        # slug/pk in the URL for this one, it's always "you".
-        return self.request.user.realtor_profile
-
-    def get_success_url(self):
-        messages.success(self.request, "Your profile has been updated.")
-        return reverse_lazy("realtor-dashboard")
 
 
 class PropertyCreateView(VerifiedRealtorRequiredMixin, CreateView):
@@ -761,6 +770,98 @@ class RealtorPublicDetailView(DetailView):
         )
 
         return context
+
+
+MAX_COMPARE_PROPERTIES = 3
+COMPARE_SESSION_KEY = "compare_property_ids"
+
+
+@require_POST
+def toggle_compare(request, slug):
+    property_obj = get_object_or_404(Property, slug=slug, is_published=True)
+
+    compare_ids = request.session.get(COMPARE_SESSION_KEY, [])
+
+    if property_obj.id in compare_ids:
+        compare_ids.remove(property_obj.id)
+        message = f'Removed "{property_obj.title}" from comparison.'
+    else:
+        if len(compare_ids) >= MAX_COMPARE_PROPERTIES:
+            messages.error(
+                request,
+                f"You can compare up to {MAX_COMPARE_PROPERTIES} properties "
+                "at a time. Remove one first.",
+            )
+            next_url = request.POST.get("next")
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
+            return redirect(property_obj.get_absolute_url())
+
+        compare_ids.append(property_obj.id)
+        message = f'Added "{property_obj.title}" to comparison.'
+
+    # Session values must be JSON-serializable and session changes
+    # need to be flagged explicitly when mutating a mutable object
+    # (like this list) in place, rather than reassigning it outright.
+    request.session[COMPARE_SESSION_KEY] = compare_ids
+    request.session.modified = True
+
+    messages.success(request, message)
+
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect(property_obj.get_absolute_url())
+
+
+class CompareView(TemplateView):
+    template_name = "pages/compare.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        compare_ids = self.request.session.get(COMPARE_SESSION_KEY, [])
+
+        properties = list(
+            Property.objects.filter(
+                id__in=compare_ids, is_published=True
+            ).select_related("property_type", "location", "realtor")
+        )
+        # filter() doesn't preserve the order properties were added in,
+        # so re-sort to match the order in the session list.
+        properties.sort(key=lambda p: compare_ids.index(p.id))
+
+        context["properties"] = properties
+        context["max_compare"] = MAX_COMPARE_PROPERTIES
+
+        return context
+
+
+@require_POST
+def clear_compare(request):
+    request.session[COMPARE_SESSION_KEY] = []
+    request.session.modified = True
+
+    messages.success(request, "Comparison cleared.")
+
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect("property-list")
 
 
 class AboutView(TemplateView):
