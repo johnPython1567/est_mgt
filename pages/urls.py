@@ -19,6 +19,7 @@ urlpatterns = [
     path('inquiries/create/', views.InquiryCreateView.as_view(), name='inquiry-create'),
     path('realtors/', views.RealtorListView.as_view(), name='realtor-list'),
     path('realtors/<slug:slug>/', views.RealtorPublicDetailView.as_view(), name='realtor-detail'),
+    path('realtors/<slug:slug>/review/', views.create_review, name='create-review'),
     path('about/', views.AboutView.as_view(), name='about'),
     path('contact/', views.ContactView.as_view(), name='contact'),
     path('compare/', views.CompareView.as_view(), name='property-compare'),

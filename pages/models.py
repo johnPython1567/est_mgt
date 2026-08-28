@@ -1,7 +1,10 @@
 import random
 from datetime import date
+
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -99,6 +102,7 @@ class Location(models.Model):
                 )
                 self.latitude, self.longitude = coords
 
+
 class Property(models.Model):
         LISTING_TYPES = [
             ("sale", "For Sale"),
@@ -109,6 +113,7 @@ class Property(models.Model):
         slug = models.SlugField(unique=True)
 
         description = models.TextField()
+
         amenities = models.TextField(
             blank=True,
             help_text="One amenity per line, e.g. Swimming pool, 24/7 security, Gym",
@@ -280,6 +285,7 @@ class Favorite(models.Model):
     def __str__(self):
         return f"{self.user.username} saved {self.property.title}"
 
+
 class RecentlyViewed(models.Model):
     """One row per (user, property) pair -- viewing the same property
     again just bumps viewed_at instead of creating a duplicate, so
@@ -364,6 +370,7 @@ class Inquiry(models.Model):
     def __str__(self):
         return f"Inquiry from {self.name} about {self.property.title}"
 
+
 class PropertyImage(models.Model):
     """Extra gallery photos for a listing, beyond its single primary
     Property.image (which stays as the hero/card image, unchanged).
@@ -386,7 +393,7 @@ class PropertyImage(models.Model):
 
     def __str__(self):
         return f"Photo for {self.property.title}"
-    
+
 
 class Realtor(models.Model):
     user = models.OneToOneField(
@@ -417,9 +424,27 @@ class Realtor(models.Model):
     applied_at = models.DateTimeField(auto_now_add=True)
     verified_at = models.DateTimeField(null=True, blank=True)
 
+    # Cached aggregate, kept in sync by a signal on Review (see
+    # below) whenever a review is added or removed. Storing this
+    # directly avoids running an AVG()/COUNT() query across all of a
+    # realtor's reviews every single time their name is displayed
+    # anywhere on the site.
+    average_rating = models.DecimalField(
+        max_digits=3, decimal_places=2, null=True, blank=True
+    )
+    review_count = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         status = "Verified" if self.is_verified else "Pending"
         return f"{self.user.username} ({status})"
+
+    def update_review_stats(self):
+        stats = self.reviews.aggregate(
+            avg=models.Avg("rating"), count=models.Count("id")
+        )
+        Realtor.objects.filter(pk=self.pk).update(
+            average_rating=stats["avg"], review_count=stats["count"] or 0
+        )
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -441,3 +466,42 @@ class Realtor(models.Model):
 
     class Meta:
         ordering = ["user__username"]
+
+
+class Review(models.Model):
+    RATING_CHOICES = [
+        (1, "1 - Poor"),
+        (2, "2 - Fair"),
+        (3, "3 - Good"),
+        (4, "4 - Very Good"),
+        (5, "5 - Excellent"),
+    ]
+
+    realtor = models.ForeignKey(
+        Realtor,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="realtor_reviews",
+    )
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} rated {self.realtor.user.username} {self.rating}/5"
+
+
+@receiver([post_save, post_delete], sender=Review)
+def _update_realtor_stats_on_review_change(sender, instance, **kwargs):
+    # Runs on every review create/edit/delete, from any code path
+    # (the view below, admin, a shell command) -- not just the
+    # "normal" review-submission flow -- so the cached average never
+    # silently drifts out of sync with the actual reviews.
+    instance.realtor.update_review_stats()

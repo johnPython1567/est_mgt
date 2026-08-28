@@ -3,7 +3,8 @@ from django.utils import timezone
 
 # Register your models here.
 
-from .models import Inquiry, Location, Property, PropertyImage, PropertyType, Realtor
+from .models import Inquiry, Location, Property, PropertyImage, PropertyType, Realtor, Review
+
 
 class PropertyImageInline(admin.TabularInline):
     model = PropertyImage
@@ -13,6 +14,7 @@ class PropertyImageInline(admin.TabularInline):
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
     inlines = [PropertyImageInline]
+
     list_display = (
         "title",
         "property_type",
@@ -63,6 +65,7 @@ class LocationAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
 
 
+
 @admin.register(Inquiry)
 class InquiryAdmin(admin.ModelAdmin):
     list_select_related = ("property", "user")
@@ -110,6 +113,8 @@ class RealtorAdmin(admin.ModelAdmin):
         "agency",
         "phone",
         "is_verified",
+        "average_rating",
+        "review_count",
         "applied_at",
     )
 
@@ -123,3 +128,23 @@ class RealtorAdmin(admin.ModelAdmin):
     )
 
     actions = [approve_realtors]
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_select_related = ("realtor", "realtor__user", "user")
+
+    list_display = (
+        "realtor",
+        "user",
+        "rating",
+        "created_at",
+    )
+
+    list_filter = ("rating",)
+
+    search_fields = (
+        "realtor__user__username",
+        "user__username",
+        "comment",
+    )

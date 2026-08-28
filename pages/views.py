@@ -23,6 +23,7 @@ from .forms import (
     PropertyImageForm,
     RealtorApplicationForm,
     RegistrationForm,
+    ReviewForm,
 )
 from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType
 
@@ -769,6 +770,19 @@ class RealtorPublicDetailView(DetailView):
             "images"
         )
 
+        context["reviews"] = (
+            self.object.reviews.select_related("user")[:20]
+        )
+
+        can_review = False
+        if self.request.user.is_authenticated:
+            can_review = Inquiry.objects.filter(
+                user=self.request.user, property__realtor=self.object
+            ).exists()
+
+        context["can_review"] = can_review
+        context["review_form"] = ReviewForm() if can_review else None
+
         return context
 
 
@@ -885,3 +899,37 @@ class PropertyMapView(TemplateView):
         ).select_related("property_type", "location")
 
         return context
+
+
+@require_POST
+@login_required
+def create_review(request, slug):
+    realtor = get_object_or_404(Realtor, slug=slug, is_verified=True)
+
+    # Eligibility check: only someone who has actually contacted this
+    # realtor about one of their listings can leave a review -- not
+    # just any logged-in visitor.
+    has_inquired = Inquiry.objects.filter(
+        user=request.user, property__realtor=realtor
+    ).exists()
+
+    if not has_inquired:
+        messages.error(
+            request,
+            "You can only review a realtor after contacting them "
+            "about one of their listings.",
+        )
+        return redirect(realtor.get_absolute_url())
+
+    form = ReviewForm(request.POST)
+
+    if form.is_valid():
+        review = form.save(commit=False)
+        review.realtor = realtor
+        review.user = request.user
+        review.save()
+        messages.success(request, "Thanks for your review.")
+    else:
+        messages.error(request, "Please choose a valid rating.")
+
+    return redirect(realtor.get_absolute_url())

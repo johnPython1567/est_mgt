@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
-from .models import Inquiry, Location, Property, Realtor, PropertyImage
+from .models import Inquiry, Location, Property, PropertyImage, Realtor, Review
 
 
 INPUT_CLASSES = (
@@ -10,7 +10,10 @@ INPUT_CLASSES = (
     "placeholder-[#94A3B8] focus:border-[#12283F] focus:ring-[#12283F]"
 )
 
-
+# File inputs need their own styling: the "Choose file" button part
+# is styled via the file:* Tailwind variants, while the surrounding
+# text (filename, or Django's "Currently: ... Clear" for an existing
+# image) stays plain so it doesn't look like an input box itself.
 FILE_INPUT_CLASSES = (
     "block w-full text-sm text-[#64748B] "
     "file:mr-4 file:rounded-lg file:border-0 file:bg-[#12283F] "
@@ -78,8 +81,7 @@ class RealtorApplicationForm(forms.ModelForm):
             ),
             "phone": forms.TextInput(attrs={"class": INPUT_CLASSES}),
             "agency": forms.TextInput(attrs={"class": INPUT_CLASSES}),
-            "photo": forms.ClearableFileInput(attrs={"class": FILE_INPUT_CLASSES})
-
+            "photo": forms.ClearableFileInput(attrs={"class": FILE_INPUT_CLASSES}),
         }
 
 
@@ -119,7 +121,6 @@ class PropertyForm(forms.ModelForm):
             "description": forms.Textarea(
                 attrs={"class": INPUT_CLASSES, "rows": 5}
             ),
-
             "amenities": forms.Textarea(
                 attrs={
                     "class": INPUT_CLASSES,
@@ -127,14 +128,12 @@ class PropertyForm(forms.ModelForm):
                     "placeholder": "One per line, e.g.\nSwimming pool\n24/7 security\nGym",
                 }
             ),
-
             "property_type": forms.Select(attrs={"class": INPUT_CLASSES}),
             "listing_type": forms.Select(attrs={"class": INPUT_CLASSES}),
             "price": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
             "bedrooms": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
             "bathrooms": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
             "area": forms.NumberInput(attrs={"class": INPUT_CLASSES}),
-            "address": forms.TextInput(attrs={"class": INPUT_CLASSES}),
             "address": forms.TextInput(attrs={"class": INPUT_CLASSES}),
             "image": forms.ClearableFileInput(attrs={"class": FILE_INPUT_CLASSES}),
         }
@@ -171,6 +170,7 @@ class PropertyForm(forms.ModelForm):
 
         return property_obj
 
+
 class PropertyImageForm(forms.ModelForm):
     class Meta:
         model = PropertyImage
@@ -179,5 +179,21 @@ class PropertyImageForm(forms.ModelForm):
             "image": forms.ClearableFileInput(attrs={"class": FILE_INPUT_CLASSES}),
             "caption": forms.TextInput(
                 attrs={"class": INPUT_CLASSES, "placeholder": "Optional caption"}
+            ),
+        }
+
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ["rating", "comment"]
+        widgets = {
+            "rating": forms.Select(attrs={"class": INPUT_CLASSES}),
+            "comment": forms.Textarea(
+                attrs={
+                    "class": INPUT_CLASSES,
+                    "rows": 3,
+                    "placeholder": "Share your experience (optional)",
+                }
             ),
         }
