@@ -118,6 +118,18 @@
                             </a>
                         {% endif %}
 
+                        {% if pending_realtor_count %}
+                            <a href="{% url 'admin:pages_realtor_changelist' %}?is_verified__exact=0"
+                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                                title="Pending realtor applications awaiting approval"
+                            >
+                                Realtor requests
+                                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#DC2626] text-xs font-bold text-white">
+                                    {{ pending_realtor_count }}
+                                </span>
+                            </a>
+                        {% endif %}
+
                         {% if request.user.is_authenticated %}
 
                             {% if request.user.realtor_profile.is_verified %}
@@ -240,6 +252,17 @@
                             Compare
                             <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#C49A5A] text-xs font-bold text-white">
                                 {{ compare_count }}
+                            </span>
+                        </a>
+                    {% endif %}
+
+                    {% if pending_realtor_count %}
+                        <a href="{% url 'admin:pages_realtor_changelist' %}?is_verified__exact=0"
+                            class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#12283F] hover:bg-[#F1F5F9] transition"
+                        >
+                            Realtor requests
+                            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#DC2626] text-xs font-bold text-white">
+                                {{ pending_realtor_count }}
                             </span>
                         </a>
                     {% endif %}
