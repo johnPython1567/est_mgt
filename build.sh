@@ -30,7 +30,13 @@ python manage.py migrate
 python manage.py migrate
 
 python manage.py shell -c "
-from pages.models import Realtor
-for r in Realtor.objects.filter(slug__isnull=True): r.save()
+from pages.models import Location
+import time
+print('DEBUG: total locations:', Location.objects.count())
+print('DEBUG: missing coords BEFORE:', Location.objects.filter(latitude__isnull=True).count())
+for loc in Location.objects.filter(latitude__isnull=True):
+    loc.save()
+    time.sleep(1)
+print('DEBUG: missing coords AFTER:', Location.objects.filter(latitude__isnull=True).count())
 "
 python manage.py createsuperuser --noinput || true
