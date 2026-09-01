@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cloudinary_storage',
     'cloudinary',
+    'anymail',
     'pages'
 ]
 
@@ -262,19 +263,27 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "home"
 
-# Email (saved search alerts). With no EMAIL_HOST_USER set (e.g. in
-# local development), Django falls back to printing emails to the
-# console instead of actually sending them -- so this is always safe
-# to leave in place even before real credentials exist.
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+# Email (saved search alerts).
+#
+# Sent via Brevo's HTTPS API (not raw SMTP): Render's free tier
+# blocks all outbound traffic on SMTP ports (25, 465, 587) as of
+# September 2025, which made a plain SMTP backend hang indefinitely
+# until Gunicorn's own worker timeout killed the request. Brevo's
+# API goes over regular HTTPS (port 443), which isn't blocked.
+#
+# With no BREVO_API_KEY set (e.g. in local development), Django
+# falls back to printing emails to the console instead of actually
+# sending them -- so this is always safe to leave in place even
+# before real credentials exist.
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 
-if EMAIL_HOST_USER:
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-    EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+if BREVO_API_KEY:
+    EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+    ANYMAIL = {"BREVO_API_KEY": BREVO_API_KEY}
+    # Must be an address verified in Brevo's dashboard under
+    # Senders (Single Sender Verification) -- an unverified "from"
+    # address will be rejected by Brevo's API at send time.
+    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "")
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     DEFAULT_FROM_EMAIL = "noreply@est-mgt.com"
