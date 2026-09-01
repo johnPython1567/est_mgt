@@ -185,6 +185,18 @@ CSRF_TRUSTED_ORIGINS = [
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
+# Render (and most PaaS platforms) terminate SSL at their edge, then
+# forward requests to the app internally over plain HTTP, adding an
+# X-Forwarded-Proto header to indicate the original request was
+# actually HTTPS. Without telling Django to trust this header, it
+# has no way to know the connection was secure -- so SECURE_SSL_REDIRECT
+# below would think every single request (even ones that already
+# arrived over HTTPS) needs redirecting to HTTPS, causing every page
+# to silently redirect to itself. Browsers absorb this invisibly by
+# auto-following the redirect; non-browser clients (like an external
+# cron service) correctly refuse to and surface it as a real error.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # HTTPS-only protections. They automatically activate when
 # DJANGO_DEBUG=False on a real HTTPS deployment.
 if not DEBUG:
