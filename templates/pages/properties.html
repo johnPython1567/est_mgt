@@ -220,8 +220,7 @@
                     </button>
 
                     {% if has_active_filters %}
-                        
-                           <a href="{% url 'property-list' %}"
+                        <a href="{% url 'property-list' %}"
                             class="rounded-lg px-3 py-3 text-sm font-semibold text-[#64748B] transition hover:text-[#12283F]"
                         >
                             Clear
@@ -229,6 +228,37 @@
                     {% endif %}
                 </div>
             </form>
+
+            {% if has_active_filters %}
+                <div class="px-6 pb-6">
+                    {% if request.user.is_authenticated %}
+                        <form method="post" action="{% url 'save-search' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <input type="hidden" name="location" value="{{ selected_filters.location }}">
+                            <input type="hidden" name="property_type" value="{{ selected_filters.property_type }}">
+                            <input type="hidden" name="listing_type" value="{{ selected_filters.listing_type }}">
+                            <input type="hidden" name="min_price" value="{{ selected_filters.min_price|default_if_none:'' }}">
+                            <input type="hidden" name="max_price" value="{{ selected_filters.max_price|default_if_none:'' }}">
+                            <input type="hidden" name="bedrooms" value="{{ selected_filters.bedrooms|default_if_none:'' }}">
+                            <input type="hidden" name="bathrooms" value="{{ selected_filters.bathrooms|default_if_none:'' }}">
+
+                            <button
+                                type="submit"
+                                class="text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                            >
+                                💾 Save this search — get emailed about new matches
+                            </button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}"
+                            class="text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                        >
+                            Log in to save this search and get emailed about new matches
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
 
         </div>
 
@@ -293,6 +323,7 @@
                     </p>
 
                 {% endif %}
+
                 <a href="{% url 'property-map' %}"
                     class="inline-flex items-center justify-center rounded-lg border border-[#CBD5E1] px-5 py-2.5 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
                 >
@@ -544,8 +575,10 @@
 
                             </div>
 
+
                             <!-- View Property -->
-                                <a href="{{ property.get_absolute_url }}"
+
+                            <a href="{{ property.get_absolute_url }}"
                                 class="inline-flex
                                        items-center
                                        mt-6
@@ -562,6 +595,8 @@
                                 </span>
 
                             </a>
+
+
                             <!-- Compare Toggle -->
 
                             <form
@@ -678,8 +713,7 @@
                 >
 
                     {% if page_obj.has_previous %}
-                        
-                            <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                        <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
                             class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
                         >
                             Previous
@@ -691,8 +725,7 @@
                     </span>
 
                     {% if page_obj.has_next %}
-                        
-                           <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                        <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
                             class="rounded-lg border border-[#CBD5E1] px-4 py-2 text-sm font-semibold text-[#12283F] transition hover:border-[#12283F]"
                         >
                             Next

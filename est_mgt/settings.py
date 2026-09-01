@@ -1,8 +1,7 @@
 import os
+import dj_database_url
 from dotenv import load_dotenv
 from pathlib import Path
-import dj_database_url
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,7 +60,7 @@ TEMPLATES = [
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
-                'context_processors': [
+            'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -251,4 +250,32 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "home"
 
+# Email (saved search alerts). With no EMAIL_HOST_USER set (e.g. in
+# local development), Django falls back to printing emails to the
+# console instead of actually sending them -- so this is always safe
+# to leave in place even before real credentials exist.
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 
+if EMAIL_HOST_USER:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+    EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = "noreply@est-mgt.com"
+
+# Full site URL, used to build absolute links in emails (a request
+# object -- and therefore request.build_absolute_uri -- isn't
+# available inside the saved-search management command, which runs
+# outside any request/response cycle).
+SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+
+# Shared secret an external scheduler (cron-job.org) must send in an
+# X-Cron-Secret header to trigger the saved-search check endpoint.
+# Deliberately has no default -- an empty/missing value means the
+# endpoint always rejects requests, rather than silently trusting
+# anyone if this hasn't been configured yet.
+CRON_SECRET_TOKEN = os.getenv("CRON_SECRET_TOKEN", "")

@@ -1,6 +1,6 @@
 import random
 from datetime import date
-
+from django.db.models import Q
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -505,3 +505,96 @@ def _update_realtor_stats_on_review_change(sender, instance, **kwargs):
     # "normal" review-submission flow -- so the cached average never
     # silently drifts out of sync with the actual reviews.
     instance.realtor.update_review_stats()
+
+
+
+class SavedSearch(models.Model):
+    """A stored filter combination a user wants to be alerted about.
+    Mirrors PropertyListView's filter fields exactly, so
+    matching_queryset() below reuses the identical filtering logic
+    the search page itself uses -- a saved search behaves exactly
+    like re-running that search."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="saved_searches",
+    )
+
+    location = models.CharField(max_length=100, blank=True)
+    property_type = models.ForeignKey(
+        PropertyType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    listing_type = models.CharField(
+        max_length=10, blank=True, choices=Property.LISTING_TYPES
+    )
+    min_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    max_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    bedrooms = models.PositiveIntegerField(null=True, blank=True)
+    bathrooms = models.PositiveIntegerField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Everything published before this saved search existed doesn't
+    # count as a "new" match -- only properties published after it
+    # was created (and after each subsequent check) trigger an alert.
+    last_checked_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        parts = [
+            part
+            for part in [
+                self.location,
+                self.property_type.name if self.property_type else "",
+                dict(Property.LISTING_TYPES).get(self.listing_type, ""),
+            ]
+            if part
+        ]
+        return ", ".join(parts) if parts else f"Saved search #{self.pk}"
+
+    def matching_queryset(self):
+        queryset = Property.objects.filter(is_published=True)
+
+        if self.location:
+            queryset = queryset.filter(
+                Q(location__city__icontains=self.location)
+                | Q(location__state__icontains=self.location)
+                | Q(address__icontains=self.location)
+            )
+
+        if self.property_type_id:
+            queryset = queryset.filter(property_type_id=self.property_type_id)
+
+        if self.listing_type:
+            queryset = queryset.filter(listing_type=self.listing_type)
+
+        if self.min_price is not None:
+            queryset = queryset.filter(price__gte=self.min_price)
+
+        if self.max_price is not None:
+            queryset = queryset.filter(price__lte=self.max_price)
+
+        if self.bedrooms is not None:
+            queryset = queryset.filter(bedrooms__gte=self.bedrooms)
+
+        if self.bathrooms is not None:
+            queryset = queryset.filter(bathrooms__gte=self.bathrooms)
+
+        return queryset
+
+    def new_matches(self):
+        """Properties matching this search that were published since
+        it was last checked (or since it was created, if never
+        checked yet)."""
+        return self.matching_queryset().filter(
+            created_at__gt=self.last_checked_at
+        )

@@ -1,11 +1,14 @@
 import random
+import secrets
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.management import call_command
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
@@ -14,7 +17,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils.text import slugify
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from django.http import Http404, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.http import Http404, HttpResponseForbidden, JsonResponse
 
 from .forms import (
     InquiryForm,
@@ -25,7 +29,7 @@ from .forms import (
     RegistrationForm,
     ReviewForm,
 )
-from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType
+from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType, SavedSearch
 
 
 class HomeView(TemplateView):
@@ -365,6 +369,10 @@ class ProfileView(LoginRequiredMixin, TemplateView):
                 "property", "property__property_type", "property__location"
             )[:10]
         )
+
+        context["saved_searches"] = SavedSearch.objects.filter(
+            user=self.request.user
+        ).select_related("property_type")
 
         return context
 
@@ -933,3 +941,97 @@ def create_review(request, slug):
         messages.error(request, "Please choose a valid rating.")
 
     return redirect(realtor.get_absolute_url())
+
+
+def _parse_decimal_or_none(raw):
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        value = Decimal(raw)
+    except (InvalidOperation, ValueError):
+        return None
+    return value if value >= 0 else None
+
+
+def _parse_int_or_none(raw):
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        return None
+    return value if value >= 0 else None
+
+
+@require_POST
+@login_required
+def save_search(request):
+    property_type_slug = request.POST.get("property_type", "")
+    property_type = PropertyType.objects.filter(
+        slug=property_type_slug
+    ).first()
+
+    listing_type = request.POST.get("listing_type", "")
+    valid_listing_types = {value for value, _ in Property.LISTING_TYPES}
+    if listing_type not in valid_listing_types:
+        listing_type = ""
+
+    SavedSearch.objects.create(
+        user=request.user,
+        location=request.POST.get("location", "").strip()[:100],
+        property_type=property_type,
+        listing_type=listing_type,
+        min_price=_parse_decimal_or_none(request.POST.get("min_price")),
+        max_price=_parse_decimal_or_none(request.POST.get("max_price")),
+        bedrooms=_parse_int_or_none(request.POST.get("bedrooms")),
+        bathrooms=_parse_int_or_none(request.POST.get("bathrooms")),
+    )
+
+    messages.success(
+        request,
+        "Search saved. We'll email you when new matching properties are listed.",
+    )
+
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect("property-list")
+
+
+@require_POST
+@login_required
+def delete_saved_search(request, pk):
+    # Ownership check via the query itself, same pattern as every
+    # other "delete your own thing" view in this file.
+    search = get_object_or_404(SavedSearch, pk=pk, user=request.user)
+    search.delete()
+    messages.success(request, "Saved search removed.")
+    return redirect("profile")
+
+
+@csrf_exempt
+@require_POST
+def trigger_saved_search_check(request):
+    """Called by an external scheduler (cron-job.org) once a day,
+    not by a logged-in user in a browser -- so this is authenticated
+    by a shared secret token instead of Django's normal session-based
+    login/CSRF, and is deliberately exempted from CSRF checks since
+    an external caller has no Django session or CSRF cookie at all."""
+    provided_token = request.headers.get("X-Cron-Secret", "")
+    expected_token = getattr(settings, "CRON_SECRET_TOKEN", "")
+
+    if not expected_token or not secrets.compare_digest(
+        provided_token, expected_token
+    ):
+        return HttpResponseForbidden("Invalid or missing token.")
+
+    call_command("check_saved_searches")
+
+    return JsonResponse({"status": "ok"})
