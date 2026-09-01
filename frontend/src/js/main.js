@@ -383,3 +383,49 @@ if (galleryMain && galleryThumbs.length) {
 
     startGallerySlider();
 }
+
+
+// Property cards: clicking anywhere on the card navigates to the
+// property detail page, EXCEPT clicks on a nested interactive
+// element (the favorite button, the compare button, or the "View
+// Property" link itself) -- those keep handling their own click
+// normally, since a card can legally only contain one real <a>/
+// <form> per interactive purpose, not be wrapped in one itself.
+document.querySelectorAll("[data-card-link]").forEach((card) => {
+    card.addEventListener("click", (event) => {
+        if (event.target.closest("a, button, form")) {
+            return;
+        }
+
+        const url = card.getAttribute("data-card-link");
+        if (url) {
+            window.location.href = url;
+        }
+    });
+});
+
+
+// Fixed nav that blends into the hero on the homepage: starts
+// transparent with white text at the top of the page (server-
+// rendered that way already, to avoid a flash-of-solid on load),
+// then switches to the normal solid white/navy nav as soon as the
+// page is scrolled at all. Every other page just stays solid
+// always -- data-transparent-capable is only "true" on the homepage.
+const siteHeader = document.getElementById("site-header");
+
+if (siteHeader && siteHeader.dataset.transparentCapable === "true") {
+    const SOLID_CLASSES = ["bg-white", "border-b", "border-[#E2E8F0]"];
+
+    function updateHeaderForScroll() {
+        if (window.scrollY > 10) {
+            siteHeader.classList.remove("nav-transparent");
+            siteHeader.classList.add(...SOLID_CLASSES);
+        } else {
+            siteHeader.classList.remove(...SOLID_CLASSES);
+            siteHeader.classList.add("nav-transparent");
+        }
+    }
+
+    updateHeaderForScroll();
+    window.addEventListener("scroll", updateHeaderForScroll);
+}

@@ -28,6 +28,27 @@
     {% block vite_link %}
     {% endblock %}
 
+    <style>
+        /* Homepage-only: while the nav sits transparently over the
+           hero (see the nav-transparent JS toggle below), text/icon
+           elements in the top bar need to switch to white so they
+           read against the hero image. Deliberately scoped to
+           #nav-top-bar only, NOT the whole header -- the mobile
+           dropdown panel underneath always has its own solid white
+           background regardless of scroll state, so its links must
+           keep their normal dark text or they'd become invisible
+           (white on white) whenever someone opens it. */
+        #site-header.nav-transparent {
+            background-color: transparent;
+            border-color: transparent;
+        }
+        #site-header.nav-transparent #nav-top-bar a,
+        #site-header.nav-transparent #nav-top-bar span,
+        #site-header.nav-transparent #nav-top-bar button {
+            color: #ffffff !important;
+        }
+    </style>
+
 </head>
 
 
@@ -38,13 +59,17 @@
          NAVIGATION
     ========================== -->
 
-    <header class="bg-white border-b border-[#E2E8F0]">
+    <header
+        id="site-header"
+        data-transparent-capable="{% if request.resolver_match.url_name == 'home' %}true{% else %}false{% endif %}"
+        class="fixed top-0 inset-x-0 z-50 transition-colors duration-300 {% if request.resolver_match.url_name == 'home' %}nav-transparent{% else %}bg-white border-b border-[#E2E8F0]{% endif %}"
+    >
 
         <nav>
 
             <div class="max-w-7xl mx-auto px-6">
 
-                <div class="flex items-center justify-between h-20">
+                <div id="nav-top-bar" class="flex items-center justify-between h-20">
 
 
                     <!-- Logo -->
@@ -325,7 +350,7 @@
 
     </header>
         {% if messages %}
-            <div class="max-w-7xl mx-auto px-6 pt-6">
+            <div class="max-w-7xl mx-auto px-6 pt-6 {% if request.resolver_match.url_name != 'home' %}mt-20{% endif %}">
                 {% for message in messages %}
                     <div
                         data-site-message
@@ -343,7 +368,7 @@
          PAGE CONTENT
     ========================== -->
 
-    <main>
+    <main class="{% if request.resolver_match.url_name != 'home' %}pt-20{% endif %}">
 
         {% block content %}
         {% endblock %}

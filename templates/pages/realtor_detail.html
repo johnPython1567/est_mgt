@@ -68,7 +68,10 @@
         {% if properties %}
             <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {% for property in properties %}
-                    <article class="group bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] transition hover:shadow-xl hover:-translate-y-1">
+                    <article
+                        data-card-link="{{ property.get_absolute_url }}"
+                        class="group bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] transition hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                    >
 
                         <div class="relative h-56 overflow-hidden">
                             {% if property.display_image %}
@@ -180,7 +183,9 @@
     </section>
 
 </main>
+
 <!-- Vite JavaScript -->
 
 <script type="module" src="{% vite_js %}"></script>
+
 {% endblock %}

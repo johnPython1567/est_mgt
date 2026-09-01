@@ -142,8 +142,7 @@
 
                     <!-- Details Button -->
 
-                    
-                        <a href="{{ property.get_absolute_url }}"
+                    <a href="{{ property.get_absolute_url }}"
                         class="inline-flex
                                items-center
                                mt-8
@@ -472,8 +471,7 @@
             </div>
 
 
-            
-                <a href="{% url 'property-list' %}"
+            <a href="{% url 'property-list' %}"
                 class="inline-flex
                        items-center
                        text-sm
@@ -505,6 +503,7 @@
                 {% for property in featured_properties %}
 
                     <article
+                        data-card-link="{{ property.get_absolute_url }}"
                         class="group
                                bg-white
                                rounded-2xl
@@ -513,7 +512,8 @@
                                border-[#E2E8F0]
                                hover:shadow-xl
                                transition
-                               duration-300"
+                               duration-300
+                               cursor-pointer"
                     >
 
 
@@ -698,8 +698,7 @@
 
                             <!-- Details -->
 
-                            
-                                <a href="{{ property.get_absolute_url }}"
+                            <a href="{{ property.get_absolute_url }}"
                                 class="inline-flex
                                        items-center
                                        mt-5
@@ -712,6 +711,36 @@
                                 View Property
                                 <span class="ml-2">→</span>
                             </a>
+
+
+                            <!-- Compare Toggle -->
+
+                            <form
+                                method="post"
+                                action="{% url 'toggle-compare' property.slug %}"
+                                class="mt-3"
+                            >
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center gap-2 text-xs font-semibold transition
+                                        {% if property.id in compare_property_ids %}
+                                            text-[#12283F]
+                                        {% else %}
+                                            text-[#94A3B8] hover:text-[#12283F]
+                                        {% endif %}"
+                                >
+                                    {% if property.id in compare_property_ids %}
+                                        <span class="flex h-4 w-4 items-center justify-center rounded border border-[#12283F] bg-[#12283F] text-[10px] text-white">✓</span>
+                                        Comparing
+                                    {% else %}
+                                        <span class="flex h-4 w-4 items-center justify-center rounded border border-[#CBD5E1]"></span>
+                                        Compare
+                                    {% endif %}
+                                </button>
+                            </form>
 
                         </div>
 
