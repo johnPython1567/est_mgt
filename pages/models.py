@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.utils.text import slugify
+import re
 
 
 MAX_IMAGE_SIZE_MB = 10
@@ -257,6 +258,20 @@ class Property(models.Model):
                 float(self.location.longitude) + offset_lng,
             )
 
+        @property
+        def whatsapp_inquiry_message(self):
+            """Pre-built, ready-to-encode message text for the
+            'Chat on WhatsApp' button on this property's detail
+            page. Built here in Python rather than concatenated in
+            the template, since Django's template filters chain
+            left-to-right on the OUTPUT of the previous filter --
+            trying to append this property's title after
+            whatsapp_with_message had already built and URL-encoded
+            the full link would append raw, unencoded text onto an
+            already-complete URL instead of encoding it as part of
+            the message."""
+            return f"Hi, I'm interested in {self.title} listed on EST-MGT"
+
 
 class Favorite(models.Model):
     user = models.ForeignKey(
@@ -463,6 +478,40 @@ class Realtor(models.Model):
 
     def get_absolute_url(self):
         return reverse("realtor-detail", args=[self.slug])
+
+    @property
+    def whatsapp_url(self):
+        """A wa.me click-to-chat base link built from this realtor's
+        phone number, or None if there's no phone number usable to
+        build one from.
+
+        Realtor.phone has always been free-text, so it could be
+        stored in almost any format a realtor happened to type it
+        in -- local Nigerian format ("08012345678"), already-
+        international ("+2348012345678" or "2348012345678"), or with
+        spaces/dashes mixed in. WhatsApp's click-to-chat links
+        require a plain digit-only international number with no
+        leading "+", so this normalizes the two formats actually
+        seen in practice and deliberately returns None (no link
+        shown at all) for anything it can't confidently normalize,
+        rather than ever producing a link that silently goes to the
+        wrong number.
+        """
+        digits = re.sub(r"\D", "", self.phone or "")
+
+        if not digits:
+            return None
+
+        if digits.startswith("0") and len(digits) == 11:
+            # Local Nigerian mobile format -- swap the leading 0
+            # for the country code.
+            digits = "234" + digits[1:]
+        elif not digits.startswith("234"):
+            # Not a recognized local or already-international
+            # Nigerian number -- don't guess.
+            return None
+
+        return f"https://wa.me/{digits}"
 
     class Meta:
         ordering = ["user__username"]

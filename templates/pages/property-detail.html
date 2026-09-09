@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load vite %}
+{% load whatsapp_tags %}
 
 
 {% block page_title %}
@@ -23,8 +24,7 @@
 
     <div class="max-w-7xl mx-auto px-6 pt-8">
 
-        
-           <a href="{% url 'property-list' %}"
+        <a href="{% url 'property-list' %}"
             class="inline-flex
                    items-center
                    text-sm
@@ -490,8 +490,7 @@
                             {% endif %}
 
                             <div>
-                                
-                                    <a href="{{ property.realtor.get_absolute_url }}"
+                                <a href="{{ property.realtor.get_absolute_url }}"
                                     class="font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
                                 >
                                     {{ property.realtor.agency|default:property.realtor.user.username }}
@@ -499,9 +498,19 @@
                                 {% if property.realtor.phone %}
                                     <p class="text-sm text-[#64748B] mt-0.5">{{ property.realtor.phone }}</p>
                                 {% endif %}
-                                
-                                    <a href="{{ property.realtor.get_absolute_url }}"
-                                    class="text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+
+                                {% if property.realtor.whatsapp_url %}
+                                    <a href="{{ property.realtor|whatsapp_with_message:property.whatsapp_inquiry_message }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1FAF56]"
+                                    >
+                                        💬 Chat on WhatsApp
+                                    </a>
+                                {% endif %}
+
+                                <a href="{{ property.realtor.get_absolute_url }}"
+                                    class="block mt-2 text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
                                 >
                                     View profile & other listings →
                                 </a>

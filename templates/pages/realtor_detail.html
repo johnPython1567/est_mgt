@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load vite %}
+{% load whatsapp_tags %}
 
 {% block page_title %}EST-MGT | {{ realtor.agency|default:realtor.user.username }}{% endblock %}
 
@@ -47,6 +48,16 @@
 
                     {% if realtor.phone %}
                         <p class="mt-3 text-[#12283F] font-semibold">{{ realtor.phone }}</p>
+                    {% endif %}
+
+                    {% if realtor.whatsapp_url %}
+                        <a href="{{ realtor|whatsapp_with_message:"Hi, I'd like to know more about your listings on EST-MGT" }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1FAF56]"
+                        >
+                            💬 Chat on WhatsApp
+                        </a>
                     {% endif %}
 
                     {% if realtor.bio %}
