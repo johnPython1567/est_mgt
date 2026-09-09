@@ -73,7 +73,7 @@
                 <div class="max-w-4xl text-white">
 
 
-                    <!-- Listing Type / New Badge -->
+                    <!-- Listing Type / New / Verified Badge -->
 
                     <span
                         class="inline-block
@@ -99,6 +99,22 @@
                                    font-semibold"
                         >
                             New
+                        </span>
+                    {% endif %}
+
+                    {% if property.is_verified %}
+                        <span
+                            class="inline-block
+                                   ml-2
+                                   px-4 py-2
+                                   rounded-full
+                                   bg-[#16A34A]
+                                   text-white
+                                   text-sm
+                                   font-semibold"
+                            title="This listing has been reviewed and verified by EST-MGT"
+                        >
+                            ✓ Verified
                         </span>
                     {% endif %}
 
@@ -558,7 +574,7 @@
                             {% endif %}
 
 
-                            <!-- Listing Type / New Badge -->
+                            <!-- Listing Type / New / Verified Badge -->
 
                             <div
                                 class="absolute
@@ -594,6 +610,22 @@
                                                shadow"
                                     >
                                         New
+                                    </span>
+                                {% endif %}
+
+                                {% if property.is_verified %}
+                                    <span
+                                        class="inline-block
+                                               px-3 py-1.5
+                                               rounded-full
+                                               bg-[#16A34A]
+                                               text-white
+                                               text-xs
+                                               font-bold
+                                               shadow"
+                                        title="This listing has been reviewed and verified by EST-MGT"
+                                    >
+                                        ✓ Verified
                                     </span>
                                 {% endif %}
 

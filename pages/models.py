@@ -152,6 +152,17 @@ class Property(models.Model):
 
         featured = models.BooleanField(default=False)
         is_published = models.BooleanField(default=True)
+                # Distinct from Realtor.is_verified -- that verifies the
+        # PERSON is a legitimate realtor; this verifies a SPECIFIC
+        # LISTING has been reviewed by an admin (checked against the
+        # realtor's claimed ownership/documents, etc). A verified
+        # realtor's individual listings are NOT automatically
+        # verified -- this is deliberately a separate, per-listing
+        # admin action, never something a realtor can set on their
+        # own listing themselves (it isn't exposed in PropertyForm
+        # at all, only in Django admin).
+        is_verified = models.BooleanField(default=False)
+        verified_at = models.DateTimeField(null=True, blank=True)
 
         realtor = models.ForeignKey(
             "Realtor",

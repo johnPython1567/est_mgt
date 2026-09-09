@@ -23,6 +23,7 @@ class PropertyAdmin(admin.ModelAdmin):
         "location",
         "realtor",
         "featured",
+        "is_verified",
         "is_published",
         "created_at",
     )
@@ -33,6 +34,7 @@ class PropertyAdmin(admin.ModelAdmin):
         "property_type",
         "listing_type",
         "featured",
+        "is_verified",
         "is_published",
     )
 
@@ -184,3 +186,20 @@ class ListingReportAdmin(admin.ModelAdmin):
     )
 
     actions = [mark_reviewed, mark_dismissed]
+
+@admin.action(description="Mark selected listings as verified")
+def mark_properties_verified(modeladmin, request, queryset):
+    updated = queryset.filter(is_verified=False).update(
+        is_verified=True, verified_at=timezone.now()
+    )
+    modeladmin.message_user(request, f"{updated} listing(s) marked verified.")
+
+
+@admin.action(description="Remove verification from selected listings")
+def mark_properties_unverified(modeladmin, request, queryset):
+    updated = queryset.filter(is_verified=True).update(
+        is_verified=False, verified_at=None
+    )
+    modeladmin.message_user(
+        request, f"Verification removed from {updated} listing(s)."
+    )
