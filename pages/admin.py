@@ -29,6 +29,20 @@ def mark_properties_unverified(modeladmin, request, queryset):
     )
 
 
+@admin.action(description="Mark selected listings as featured")
+def mark_properties_featured(modeladmin, request, queryset):
+    updated = queryset.filter(featured=False).update(featured=True)
+    modeladmin.message_user(request, f"{updated} listing(s) marked featured.")
+
+
+@admin.action(description="Remove selected listings from featured")
+def mark_properties_not_featured(modeladmin, request, queryset):
+    updated = queryset.filter(featured=True).update(featured=False)
+    modeladmin.message_user(
+        request, f"{updated} listing(s) removed from featured."
+    )
+
+
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
     inlines = [PropertyImageInline]
@@ -69,7 +83,12 @@ class PropertyAdmin(admin.ModelAdmin):
         "slug": ("title",)
     }
 
-    actions = [mark_properties_verified, mark_properties_unverified]
+    actions = [
+        mark_properties_verified,
+        mark_properties_unverified,
+        mark_properties_featured,
+        mark_properties_not_featured,
+    ]
 
 
 @admin.register(PropertyType)
