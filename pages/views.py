@@ -28,8 +28,9 @@ from .forms import (
     RealtorApplicationForm,
     RegistrationForm,
     ReviewForm,
+    ListingReportForm
 )
-from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType, SavedSearch
+from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType, SavedSearch, ListingReport
 
 
 class HomeView(TemplateView):
@@ -1035,3 +1036,39 @@ def trigger_saved_search_check(request):
     call_command("check_saved_searches")
 
     return JsonResponse({"status": "ok"})
+
+
+class ListingReportCreateView(CreateView):
+    model = ListingReport
+    form_class = ListingReportForm
+    http_method_names = ["post"]
+
+    def post(self, request, *args, **kwargs):
+        self.property_obj = get_object_or_404(
+            Property,
+            slug=request.POST.get("property"),
+            is_published=True,
+        )
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        report = form.save(commit=False)
+        report.property = self.property_obj
+
+        if self.request.user.is_authenticated:
+            report.user = self.request.user
+
+        report.save()
+
+        messages.success(
+            self.request,
+            "Thank you -- this listing has been flagged for review.",
+        )
+        return redirect(self.property_obj.get_absolute_url())
+
+    def form_invalid(self, form):
+        for error_list in form.errors.values():
+            for error in error_list:
+                messages.error(self.request, error)
+
+        return redirect(self.property_obj.get_absolute_url())

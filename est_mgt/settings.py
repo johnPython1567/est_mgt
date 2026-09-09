@@ -67,6 +67,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'pages.context_processors.compare_properties',
                 'pages.context_processors.pending_realtor_applications',
+                'pages.context_processors.pending_listing_reports',
             ],
         },
     },

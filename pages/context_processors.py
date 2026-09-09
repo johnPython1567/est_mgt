@@ -23,3 +23,18 @@ def pending_realtor_applications(request):
             is_verified=False
         ).count()
     }
+
+def pending_listing_reports(request):
+    """Staff-only nav badge for new (unreviewed) listing reports,
+    same pattern as pending_realtor_applications -- computed only
+    for staff so it adds no query for ordinary visitors."""
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return {}
+
+    from .models import ListingReport
+
+    return {
+        "pending_report_count": ListingReport.objects.filter(
+            status="new"
+        ).count()
+    }

@@ -3,7 +3,7 @@ from django.utils import timezone
 
 # Register your models here.
 
-from .models import Inquiry, Location, Property, PropertyImage, PropertyType, Realtor, Review
+from .models import Inquiry, Location, Property, PropertyImage, PropertyType, Realtor, Review, ListingReport
 
 
 class PropertyImageInline(admin.TabularInline):
@@ -148,3 +148,39 @@ class ReviewAdmin(admin.ModelAdmin):
         "user__username",
         "comment",
     )
+
+
+@admin.action(description="Mark selected reports as reviewed")
+def mark_reviewed(modeladmin, request, queryset):
+    updated = queryset.update(status="reviewed")
+    modeladmin.message_user(request, f"{updated} report(s) marked reviewed.")
+
+
+@admin.action(description="Dismiss selected reports")
+def mark_dismissed(modeladmin, request, queryset):
+    updated = queryset.update(status="dismissed")
+    modeladmin.message_user(request, f"{updated} report(s) dismissed.")
+
+
+@admin.register(ListingReport)
+class ListingReportAdmin(admin.ModelAdmin):
+    list_select_related = ("property",)
+
+    list_display = (
+        "property",
+        "reason",
+        "reporter_name",
+        "status",
+        "created_at",
+    )
+
+    list_filter = ("reason", "status")
+
+    search_fields = (
+        "property__title",
+        "reporter_name",
+        "reporter_email",
+        "details",
+    )
+
+    actions = [mark_reviewed, mark_dismissed]

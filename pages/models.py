@@ -688,3 +688,61 @@ class SavedSearch(models.Model):
         return self.matching_queryset().filter(
             created_at__gt=self.last_checked_at
         )
+
+
+class ListingReport(models.Model):
+    """A flag raised by a site visitor about a specific listing --
+    fraud, misleading info, duplicates, etc. -- for admin review.
+    Deliberately doesn't take any automatic action on the property
+    itself; it's a signal for a human to look at, same as an
+    Inquiry is a signal for a realtor to respond to."""
+
+    REASON_CHOICES = [
+        ("fraud", "Fraudulent listing"),
+        ("misleading", "Misleading information"),
+        ("duplicate", "Duplicate listing"),
+        ("inappropriate", "Inappropriate content"),
+        ("other", "Other"),
+    ]
+
+    STATUS_CHOICES = [
+        ("new", "New"),
+        ("reviewed", "Reviewed"),
+        ("dismissed", "Dismissed"),
+    ]
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="reports",
+    )
+
+    # Nullable/blank so a guest (not logged in) can still report a
+    # listing -- same pattern as Inquiry.user.
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="listing_reports",
+    )
+
+    reporter_name = models.CharField(max_length=150)
+    reporter_email = models.EmailField()
+
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
+    details = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="new",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Report on {self.property.title} ({self.get_reason_display()})"

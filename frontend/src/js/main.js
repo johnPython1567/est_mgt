@@ -429,3 +429,31 @@ if (siteHeader && siteHeader.dataset.transparentCapable === "true") {
     updateHeaderForScroll();
     window.addEventListener("scroll", updateHeaderForScroll);
 }
+
+const reportModal = document.querySelector("[data-report-modal]");
+
+if (reportModal) {
+    const openButtons = document.querySelectorAll("[data-report-open]");
+    const closeButtons = reportModal.querySelectorAll("[data-report-close]");
+    const backdrop = reportModal.querySelector("[data-report-backdrop]");
+
+    function openReportModal() {
+        reportModal.hidden = false;
+        const firstField = reportModal.querySelector("input, textarea");
+        if (firstField) firstField.focus();
+    }
+
+    function closeReportModal() {
+        reportModal.hidden = true;
+    }
+
+    openButtons.forEach((button) => button.addEventListener("click", openReportModal));
+    closeButtons.forEach((button) => button.addEventListener("click", closeReportModal));
+    if (backdrop) backdrop.addEventListener("click", closeReportModal);
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !reportModal.hidden) {
+            closeReportModal();
+        }
+    });
+}

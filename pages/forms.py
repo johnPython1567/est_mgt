@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
-from .models import Inquiry, Location, Property, PropertyImage, Realtor, Review
+from .models import Inquiry, Location, Property, PropertyImage, Realtor, Review, ListingReport
 
 
 INPUT_CLASSES = (
@@ -194,6 +194,23 @@ class ReviewForm(forms.ModelForm):
                     "class": INPUT_CLASSES,
                     "rows": 3,
                     "placeholder": "Share your experience (optional)",
+                }
+            ),
+        }
+
+class ListingReportForm(forms.ModelForm):
+    class Meta:
+        model = ListingReport
+        fields = ["reporter_name", "reporter_email", "reason", "details"]
+        widgets = {
+            "reporter_name": forms.TextInput(attrs={"class": INPUT_CLASSES}),
+            "reporter_email": forms.EmailInput(attrs={"class": INPUT_CLASSES}),
+            "reason": forms.Select(attrs={"class": INPUT_CLASSES}),
+            "details": forms.Textarea(
+                attrs={
+                    "class": INPUT_CLASSES,
+                    "rows": 4,
+                    "placeholder": "Optional additional details",
                 }
             ),
         }

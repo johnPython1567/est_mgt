@@ -29,15 +29,6 @@
     {% endblock %}
 
     <style>
-        /* Homepage-only: while the nav sits transparently over the
-           hero (see the nav-transparent JS toggle below), text/icon
-           elements in the top bar need to switch to white so they
-           read against the hero image. Deliberately scoped to
-           #nav-top-bar only, NOT the whole header -- the mobile
-           dropdown panel underneath always has its own solid white
-           background regardless of scroll state, so its links must
-           keep their normal dark text or they'd become invisible
-           (white on white) whenever someone opens it. */
         #site-header.nav-transparent {
             background-color: transparent;
             border-color: transparent;
@@ -55,10 +46,6 @@
 <body class="bg-[#F8FAFC] text-[#172033] min-h-screen">
 
 
-    <!-- =========================
-         NAVIGATION
-    ========================== -->
-
     <header
         id="site-header"
         data-transparent-capable="{% if request.resolver_match.url_name == 'home' %}true{% else %}false{% endif %}"
@@ -71,18 +58,12 @@
 
                 <div id="nav-top-bar" class="flex items-center justify-between h-20">
 
-
-                    <!-- Logo -->
-
                     <a href="{% url 'home' %}"
                         class="text-2xl font-bold tracking-tight text-[#12283F]
                                hover:text-[#1B3A5A] transition"
                     >
                         EST-MGT
                     </a>
-
-
-                    <!-- Navigation -->
 
                     <div class="hidden md:flex items-center gap-8">
 
@@ -93,14 +74,12 @@
                             Home
                         </a>
 
-
                         <a href="{% url 'property-list' %}"
                             class="text-sm font-semibold text-[#64748B]
                                    hover:text-[#12283F] transition"
                         >
                             Properties
                         </a>
-
 
                         <a href="{% url 'realtor-list' %}"
                             class="text-sm font-semibold text-[#64748B]
@@ -109,14 +88,12 @@
                             Realtors
                         </a>
 
-
                         <a href="{% url 'about' %}"
                             class="text-sm font-semibold text-[#64748B]
                                    hover:text-[#12283F] transition"
                         >
                             About
                         </a>
-
 
                         <a href="{% url 'contact' %}"
                             class="text-sm font-semibold text-[#64748B]
@@ -126,9 +103,6 @@
                         </a>
 
                     </div>
-
-
-                    <!-- Navigation Action -->
 
                     <div class="hidden md:flex items-center gap-4">
 
@@ -151,6 +125,18 @@
                                 Realtor requests
                                 <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#DC2626] text-xs font-bold text-white">
                                     {{ pending_realtor_count }}
+                                </span>
+                            </a>
+                        {% endif %}
+
+                        {% if pending_report_count %}
+                            <a href="{% url 'admin:pages_listingreport_changelist' %}?status__exact=new"
+                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                                title="New listing reports awaiting review"
+                            >
+                                Listing reports
+                                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#DC2626] text-xs font-bold text-white">
+                                    {{ pending_report_count }}
                                 </span>
                             </a>
                         {% endif %}
@@ -205,9 +191,6 @@
 
                     </div>
 
-
-                    <!-- Mobile Menu Button -->
-
                     <button
                         type="button"
                         data-mobile-menu-toggle
@@ -225,11 +208,6 @@
                 </div>
 
             </div>
-
-
-            <!-- =========================
-                 MOBILE MENU PANEL
-            ========================== -->
 
             <div
                 id="mobile-menu"
@@ -288,6 +266,17 @@
                             Realtor requests
                             <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#DC2626] text-xs font-bold text-white">
                                 {{ pending_realtor_count }}
+                            </span>
+                        </a>
+                    {% endif %}
+
+                    {% if pending_report_count %}
+                        <a href="{% url 'admin:pages_listingreport_changelist' %}?status__exact=new"
+                            class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#12283F] hover:bg-[#F1F5F9] transition"
+                        >
+                            Listing reports
+                            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#DC2626] text-xs font-bold text-white">
+                                {{ pending_report_count }}
                             </span>
                         </a>
                     {% endif %}
@@ -364,10 +353,6 @@
 
 
 
-    <!-- =========================
-         PAGE CONTENT
-    ========================== -->
-
     <main class="{% if request.resolver_match.url_name != 'home' %}pt-20{% endif %}">
 
         {% block content %}
@@ -377,10 +362,6 @@
 
 
 
-    <!-- =========================
-         FOOTER
-    ========================== -->
-
     {% block footer %}
 
     <footer class="bg-[#12283F] text-white">
@@ -389,8 +370,6 @@
         <div class="max-w-7xl mx-auto px-6 py-16">
 
 
-            <!-- Footer Grid -->
-
             <div
                 class="grid grid-cols-1
                        md:grid-cols-2
@@ -398,8 +377,6 @@
                        gap-10"
             >
 
-
-                <!-- Brand -->
 
                 <div>
 
@@ -424,8 +401,6 @@
                 </div>
 
 
-
-                <!-- Explore -->
 
                 <div>
 
@@ -506,8 +481,6 @@
 
 
 
-                <!-- Property Types -->
-
                 <div>
 
                     <h3 class="text-sm font-bold uppercase tracking-wider">
@@ -549,8 +522,6 @@
                 </div>
 
 
-
-                <!-- Contact -->
 
                 <div>
 
@@ -607,8 +578,6 @@
             </div>
 
 
-
-            <!-- Footer Bottom -->
 
             <div
                 class="border-t border-white/10
