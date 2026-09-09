@@ -1,0 +1,13 @@
+Hi {{ inquiry.property.realtor.user.username }},
+
+You have a new inquiry about {{ inquiry.property.title }}.
+
+From: {{ inquiry.name }}
+Email: {{ inquiry.email }}
+{% if inquiry.phone %}Phone: {{ inquiry.phone }}
+{% endif %}
+Message:
+{{ inquiry.message }}
+
+View and respond to this inquiry from your dashboard:
+{{ site_url }}{% url 'realtor-inquiries' %}

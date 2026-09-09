@@ -385,6 +385,47 @@ class Inquiry(models.Model):
     def __str__(self):
         return f"Inquiry from {self.name} about {self.property.title}"
 
+@receiver(post_save, sender=Inquiry)
+def _notify_realtor_of_new_inquiry(sender, instance, created, **kwargs):
+    # created=False means this is an update (e.g. a realtor marking
+    # an existing inquiry as "contacted"), not a brand-new inquiry --
+    # only a genuinely new one should trigger a notification.
+        if not created:
+            return
+
+        realtor = instance.property.realtor
+        if not realtor:
+            # An unassigned listing has nobody to notify.
+            return
+
+        realtor_email = realtor.user.email
+        if not realtor_email:
+            return
+
+        from django.conf import settings as django_settings
+        from django.core.mail import send_mail
+        from django.template.loader import render_to_string
+
+        subject = f"New inquiry about {instance.property.title}"
+
+        message = render_to_string(
+            "emails/new_inquiry_alert.txt",
+            {
+                "inquiry": instance,
+                "site_url": getattr(
+                    django_settings, "SITE_URL", "https://est-mgt.onrender.com"
+                ),
+            },
+        )
+
+        send_mail(
+            subject,
+            message,
+            django_settings.DEFAULT_FROM_EMAIL,
+            [realtor_email],
+            fail_silently=True,
+        )
+
 
 class PropertyImage(models.Model):
     """Extra gallery photos for a listing, beyond its single primary
