@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.management import call_command
 from django.db.models import Q
@@ -653,11 +653,16 @@ def update_inquiry_status(request, pk):
         pk=pk,
     )
 
-    # Ownership check: a realtor may only update the status of
-    # inquiries on their own listings, not anyone else's.
-    realtor_profile = getattr(request.user, "realtor_profile", None)
-    if not realtor_profile or inquiry.property.realtor_id != realtor_profile.id:
-        raise Http404
+    # Staff can act on ANY inquiry (site-wide dashboard). A regular
+    # realtor may only update inquiries on their own listings, same
+    # as before.
+    if not request.user.is_staff:
+        realtor_profile = getattr(request.user, "realtor_profile", None)
+        if (
+            not realtor_profile
+            or inquiry.property.realtor_id != realtor_profile.id
+        ):
+            raise Http404
 
     new_status = request.POST.get("status")
     valid_statuses = {value for value, _ in Inquiry.STATUS_CHOICES}
@@ -1072,3 +1077,45 @@ class ListingReportCreateView(CreateView):
                 messages.error(self.request, error)
 
         return redirect(self.property_obj.get_absolute_url())
+
+class StaffInquiryListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """Site-wide inquiry dashboard for staff -- separate from
+    RealtorInquiryListView, which only ever shows a realtor their
+    own inquiries. This shows every inquiry across every realtor,
+    with the property/realtor visible on each row, and lets staff
+    filter by status or by a specific realtor to audit
+    responsiveness."""
+
+    model = Inquiry
+    template_name = "realtors/staff_inquiries.html"
+    context_object_name = "inquiries"
+    paginate_by = 20
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def get_queryset(self):
+        queryset = Inquiry.objects.select_related(
+            "property", "property__realtor", "property__realtor__user"
+        )
+
+        status = self.request.GET.get("status", "")
+        valid_statuses = {value for value, _ in Inquiry.STATUS_CHOICES}
+        if status in valid_statuses:
+            queryset = queryset.filter(status=status)
+
+        realtor_id = self.request.GET.get("realtor", "")
+        if realtor_id:
+            queryset = queryset.filter(property__realtor_id=realtor_id)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["status_choices"] = Inquiry.STATUS_CHOICES
+        context["selected_status"] = self.request.GET.get("status", "")
+        context["realtors"] = Realtor.objects.filter(
+            is_verified=True
+        ).select_related("user")
+        context["selected_realtor"] = self.request.GET.get("realtor", "")
+        return context

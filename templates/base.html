@@ -141,6 +141,14 @@
                             </a>
                         {% endif %}
 
+                        {% if request.user.is_staff %}
+                            <a href="{% url 'staff-inquiries' %}"
+                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#12283F] hover:text-[#C49A5A] transition"
+                            >
+                                All inquiries
+                            </a>
+                        {% endif %}
+
                         {% if request.user.is_authenticated %}
 
                             {% if request.user.realtor_profile.is_verified %}
@@ -278,6 +286,14 @@
                             <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#DC2626] text-xs font-bold text-white">
                                 {{ pending_report_count }}
                             </span>
+                        </a>
+                    {% endif %}
+
+                    {% if request.user.is_staff %}
+                        <a href="{% url 'staff-inquiries' %}"
+                            class="rounded-lg px-3 py-2.5 text-sm font-semibold text-[#12283F] hover:bg-[#F1F5F9] transition"
+                        >
+                            All inquiries
                         </a>
                     {% endif %}
 

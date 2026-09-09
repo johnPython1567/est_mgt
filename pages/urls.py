@@ -38,5 +38,6 @@ urlpatterns = [
     path('realtor/properties/<slug:slug>/images/<int:image_id>/delete/', views.delete_property_image, name='delete-property-image'),
     path('realtor/inquiries/', views.RealtorInquiryListView.as_view(), name='realtor-inquiries'),
     path('realtor/inquiries/<int:pk>/status/', views.update_inquiry_status, name='update-inquiry-status'),
-    path('listings/report/', views.ListingReportCreateView.as_view(), name='report-listing')
+    path('listings/report/', views.ListingReportCreateView.as_view(), name='report-listing'),
+    path('staff/inquiries/', views.StaffInquiryListView.as_view(), name='staff-inquiries'),
 ]
