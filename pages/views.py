@@ -9,7 +9,7 @@ from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.management import call_command
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 from django.contrib.auth.decorators import login_required
@@ -30,7 +30,7 @@ from .forms import (
     ReviewForm,
     ListingReportForm
 )
-from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType, SavedSearch, ListingReport
+from .models import Property, Favorite, Inquiry, PropertyImage, RecentlyViewed, Realtor, PropertyType, SavedSearch, ListingReport,PropertyView
 
 
 class HomeView(TemplateView):
@@ -285,6 +285,23 @@ class PropertyDetailView(DetailView):
                 property=self.object,
             )
 
+        # Record a deduped view for realtor-facing analytics -- one
+        # row per unique visitor per property, whether logged in or
+        # anonymous. Separate from RecentlyViewed above, which only
+        # tracks logged-in users for their own "recently viewed"
+        # history -- this tracks EVERY visitor, since a realtor
+        # cares about total interest, not just logged-in interest.
+        if request.user.is_authenticated:
+            viewer_key = f"user:{request.user.id}"
+        else:
+            if not request.session.session_key:
+                request.session.create()
+            viewer_key = f"session:{request.session.session_key}"
+
+        PropertyView.objects.get_or_create(
+            property=self.object, viewer_key=viewer_key
+        )
+
         return response
 
     def get_context_data(self, **kwargs):
@@ -309,7 +326,6 @@ class PropertyDetailView(DetailView):
         context["inquiry_form"] = InquiryForm(initial=initial)
 
         return context
-
 
 class RegisterView(TemplateView):
     template_name = "accounts/register.html"
@@ -562,6 +578,12 @@ class RealtorDashboardView(VerifiedRealtorRequiredMixin, TemplateView):
             property__realtor=self.request.user.realtor_profile,
             status="new",
         ).count()
+
+        context["properties"] = Property.objects.filter(
+            realtor=self.request.user.realtor_profile
+        ).select_related("property_type", "location").annotate(
+            view_count=Count("view_records", distinct=True)
+        )
 
         return context
 

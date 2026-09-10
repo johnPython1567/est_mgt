@@ -347,6 +347,41 @@ class RecentlyViewed(models.Model):
         return f"{self.user.username} viewed {self.property.title}"
 
 
+class PropertyView(models.Model):
+    """One row per unique visitor per property, for realtor-facing
+    view-count analytics -- deliberately separate from
+    RecentlyViewed above, which is a different feature (a logged-in
+    user's own "recently viewed" history on their profile). This
+    tracks EVERY visitor including anonymous ones, since a realtor
+    cares about total interest, not just logged-in interest.
+
+    Deduping works via viewer_key: "user:<id>" for a logged-in
+    visitor, "session:<key>" for an anonymous one. A single shared
+    string field (rather than two separate nullable FK/session
+    fields with conditional unique constraints) keeps the "one view
+    per visitor per property" rule enforceable with one simple
+    UniqueConstraint."""
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="view_records",
+    )
+    viewer_key = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["property", "viewer_key"],
+                name="unique_property_viewer",
+            )
+        ]
+
+    def __str__(self):
+        return f"View of {self.property.title} by {self.viewer_key}"
+
+
 class Inquiry(models.Model):
     STATUS_CHOICES = [
         ("new", "New"),
