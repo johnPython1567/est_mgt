@@ -40,4 +40,5 @@ urlpatterns = [
     path('realtor/inquiries/<int:pk>/status/', views.update_inquiry_status, name='update-inquiry-status'),
     path('listings/report/', views.ListingReportCreateView.as_view(), name='report-listing'),
     path('staff/inquiries/', views.StaffInquiryListView.as_view(), name='staff-inquiries'),
+    path('realtor/properties/bulk-update/', views.bulk_update_listings, name='bulk-update-listings'),
 ]

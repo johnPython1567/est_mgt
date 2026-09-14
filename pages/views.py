@@ -1141,3 +1141,44 @@ class StaffInquiryListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         ).select_related("user")
         context["selected_realtor"] = self.request.GET.get("realtor", "")
         return context
+
+
+
+VALID_BULK_ACTIONS = {
+    "publish": {"is_published": True},
+    "unpublish": {"is_published": False},
+    "feature": {"featured": True},
+    "unfeature": {"featured": False},
+}
+
+
+@require_POST
+@login_required
+def bulk_update_listings(request):
+    realtor_profile = getattr(request.user, "realtor_profile", None)
+    if not realtor_profile:
+        raise Http404
+
+    action = request.POST.get("action")
+    selected_ids = request.POST.getlist("selected_properties")
+
+    if action not in VALID_BULK_ACTIONS:
+        messages.error(request, "That isn't a valid bulk action.")
+        return redirect("realtor-dashboard")
+
+    if not selected_ids:
+        messages.error(request, "Select at least one listing first.")
+        return redirect("realtor-dashboard")
+
+    # Critical ownership check: filtering on realtor=realtor_profile
+    # means even a crafted POST containing another realtor's
+    # property IDs can only ever touch listings that actually belong
+    # to the logged-in realtor -- everything else in the selection
+    # is silently ignored, not an error, so a mixed-ownership
+    # selection still safely updates just the ones they DO own.
+    updated = Property.objects.filter(
+        realtor=realtor_profile, pk__in=selected_ids
+    ).update(**VALID_BULK_ACTIONS[action])
+
+    messages.success(request, f"{updated} listing(s) updated.")
+    return redirect("realtor-dashboard")

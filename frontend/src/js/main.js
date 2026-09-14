@@ -457,3 +457,53 @@ if (reportModal) {
         }
     });
 }
+
+
+// Bulk listing actions on the realtor dashboard: a "select all"
+// checkbox, plus a confirmation prompt before applying any action
+// (these affect live listing visibility, so a stray click
+// shouldn't silently unpublish or unfeature several listings).
+const bulkForm = document.querySelector("[data-bulk-listing-form]");
+
+if (bulkForm) {
+    const selectAllCheckbox = bulkForm.querySelector("[data-select-all]");
+    const itemCheckboxes = bulkForm.querySelectorAll("[data-listing-checkbox]");
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener("change", () => {
+            itemCheckboxes.forEach((checkbox) => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        });
+    }
+
+    const actionLabels = {
+        publish: "publish",
+        unpublish: "unpublish",
+        feature: "feature",
+        unfeature: "unfeature",
+    };
+
+    bulkForm.querySelectorAll("[data-bulk-action-button]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+            const checkedCount = bulkForm.querySelectorAll(
+                "[data-listing-checkbox]:checked",
+            ).length;
+
+            if (checkedCount === 0) {
+                event.preventDefault();
+                window.alert("Select at least one listing first.");
+                return;
+            }
+
+            const actionLabel = actionLabels[button.value] || button.value;
+            const confirmed = window.confirm(
+                `Are you sure you want to ${actionLabel} ${checkedCount} listing${checkedCount === 1 ? "" : "s"}?`,
+            );
+
+            if (!confirmed) {
+                event.preventDefault();
+            }
+        });
+    });
+}
