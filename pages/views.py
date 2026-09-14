@@ -922,6 +922,8 @@ class ContactView(TemplateView):
     template_name = "pages/contact.html"
 
 
+from django.conf import settings
+
 class PropertyMapView(TemplateView):
     template_name = "pages/map.html"
 
@@ -933,6 +935,8 @@ class PropertyMapView(TemplateView):
             location__latitude__isnull=False,
             location__longitude__isnull=False,
         ).select_related("property_type", "location")
+
+        context["carto_api_key"] = getattr(settings, "CARTO_API_KEY", "")
 
         return context
 
