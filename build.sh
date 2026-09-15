@@ -38,6 +38,4 @@ for loc in Location.objects.filter(latitude__isnull=True):
 "
 python manage.py createsuperuser --noinput || true
 
-python manage.py dumpdata --natural-foreign --natural-primary -e contenttypes -e auth.Permission -e sessions --indent 2 > /tmp/backup_$(date +%Y%m%d).json
 
-cat /tmp/backup_$(date +%Y%m%d).json
